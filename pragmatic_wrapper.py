@@ -1,5 +1,6 @@
 import numpy as np
 from pettingzoo.utils.wrappers import BaseParallelWrapper
+import pygame
 
 class PragmaticWrapper(BaseParallelWrapper):
     """
@@ -106,3 +107,52 @@ class PragmaticWrapper(BaseParallelWrapper):
         """
         for adv_id in self.adversary_ids:
             self.adversary_meanings[adv_id] = np.random.choice(self.prey_ids)
+
+    def render(self):
+        """
+        Renders the environment and then draws lines directly onto the
+        pygame screen between adversaries and their preferred prey.
+        """
+        # Let the underlying environment render first. This clears the screen
+        # and draws the agents and landmarks.
+
+        try:
+            # Access the pygame screen and agent objects from the unwrapped env
+            screen = self.env.unwrapped.screen
+            agents = self.env.unwrapped.world.agents
+            agent_map = {agent.name: agent for agent in agents}
+            
+            # Screen dimensions for coordinate transformation
+            screen_size = 700
+            scale = screen_size / 2
+            offset = screen_size / 2
+
+            # Drawing settings
+            line_color = (255, 0, 0)  # Red
+            line_width = 2
+
+            for adv_id, prey_id in self.adversary_meanings.items():
+                if adv_id in agent_map and prey_id in agent_map:
+                    adv_agent = agent_map[adv_id]
+                    prey_agent = agent_map[prey_id]
+
+                    # Convert world coordinates to screen (pixel) coordinates
+                    # The y-axis is often inverted in rendering, so we flip it.
+                    start_pos = (
+                        int(adv_agent.state.p_pos[0] * scale + offset),
+                        int(adv_agent.state.p_pos[1] * -scale + offset)
+                    )
+                    end_pos = (
+                        int(prey_agent.state.p_pos[0] * scale + offset),
+                        int(prey_agent.state.p_pos[1] * -scale + offset)
+                    )
+
+                    # Draw the line directly on the screen surface
+                    pygame.draw.line(screen, line_color, start_pos, end_pos, line_width)
+            
+            # After drawing our custom lines, update the display to make them visible.
+            self.env.render()
+
+        except AttributeError:
+            # If the environment doesn't have the expected attributes, just pass.
+            pass
