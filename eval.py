@@ -6,14 +6,6 @@ from pettingzoo.mpe import simple_tag_v3
 import config
 from sac_agent import SACAgent
 
-def evaluate():
-    """Function to evaluate the trained policies."""
-    print(f"Using device: {config.DEVICE}")
-
-    # --- Environment Setup ---
-    env = simple_tag_v3.parallel_env(render_mode="human", **config.ENV_CONFIG)
-    
-    adversary_ids = [agent for agent in env.possible_agents if 'adversary' in agent]
 import torch
 import time
 from pettingzoo.mpe import simple_tag_v3
@@ -21,6 +13,9 @@ from pettingzoo.mpe import simple_tag_v3
 # Import project components
 import config
 from sac_agent import SACAgent
+import pygame
+
+clock = pygame.time.Clock()
 
 def evaluate():
     """Function to evaluate the trained policies."""
@@ -90,13 +85,19 @@ def evaluate():
         # This call also handles pygame events to prevent freezing.
         env.render()
 
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                env.close()
+                return
+
         if any(terminations.values()) or any(truncations.values()):
             break
 
         # This delay controls the speed of the visualization.
         # If it's still freezing, try a smaller value like 0.01
-        time.sleep(0.03)
         print(f"Step {episode+1}/{config.MAX_STEPS_PER_EPISODE} completed.")
+
+        clock.tick(5)
 
     env.close()
     print("Evaluation finished.")
