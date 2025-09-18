@@ -62,9 +62,10 @@ def train():
     if config.RESUME_TRAINING:
         load_checkpoint(adversary_agent, prey_agent, safe_mode=False)
 
-    # --- Logging ---
+    # --- Logging & Alternating Training Setup ---
     episode_rewards_prey = []
     episode_rewards_adversaries = [[] for _ in range(len(adversary_ids))]
+    current_training_agent = config.INITIAL_TRAINING_AGENT
 
     # --- Training Loop ---
     for episode in tqdm(range(config.NUM_EPISODES)):
@@ -73,9 +74,7 @@ def train():
         episode_reward_adversaries_per_episode = [0] * len(adversary_ids)
 
         for step in range(config.MAX_STEPS_PER_EPISODE):
-            # Store the original [-1, 1] actions for the replay buffer
             original_actions = {}
-            # Store the rescaled [0, 1] actions for the environment
             env_actions = {}
 
             # --- Action Selection and Rescaling ---
@@ -113,23 +112,23 @@ def train():
                     adversary_agent.update(adversary_buffer, config.BATCH_SIZE)
                 else: # current_training_agent == 'prey'
                     prey_agent.update(prey_buffer, config.BATCH_SIZE)
-
-                # Check if it's time to switch agent group
-                if (global_step_counter + 1) % config.TRAINING_INTERVAL == 0:
-                    current_training_agent = 'prey' if current_training_agent == 'adversary' else 'adversary'
-                    print(f"\nInterval reached. Switching training to: {current_training_agent.upper()}")
             else:
+                # Original behavior: update both agents every step
                 adversary_agent.update(adversary_buffer, config.BATCH_SIZE)
                 prey_agent.update(prey_buffer, config.BATCH_SIZE)
-
-            global_step_counter += 1
 
             if not obs:
                 break
 
+        # --- Switch agent group at the end of the episode if interval is reached ---
+        if config.ALTERNATING_TRAINING and (episode + 1) % config.TRAINING_INTERVAL == 0:
+            current_training_agent = 'prey' if current_training_agent == 'adversary' else 'adversary'
+            tqdm.write(f"\nEpisode interval reached. Switching training to: {current_training_agent.upper()}")
+
         episode_rewards_prey.append(episode_reward_prey)
         for i in range(len(adversary_ids)):
             episode_rewards_adversaries[i].append(episode_reward_adversaries_per_episode[i])
+
 
     env.close()
 
