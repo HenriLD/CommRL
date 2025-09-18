@@ -9,6 +9,7 @@ import config
 from sac_agent import SACAgent
 from replay_buffer import ReplayBuffer
 from utils import plot_rewards
+from pragmatic_wrapper import PragmaticWrapper
 
 def train():
     """Main training function."""
@@ -16,6 +17,7 @@ def train():
 
     # --- Environment Setup ---
     env = simple_tag_v3.parallel_env(**config.ENV_CONFIG)
+    env = PragmaticWrapper(env)
     
     adversary_ids = [agent for agent in env.possible_agents if 'adversary' in agent]
     prey_ids = [agent for agent in env.possible_agents if 'agent' in agent]
