@@ -73,13 +73,13 @@ def evaluate():
         for agent_id in adversary_ids:
             if agent_id in obs:
                 with torch.no_grad():
-                    act = adversary_agent.select_action(obs[agent_id])
+                    act = adversary_agent.select_action(obs[agent_id], evaluate=True)
                     env_actions[agent_id] = (act + 1.0) / 2.0
         
         for agent_id in prey_ids:
              if agent_id in obs:
                 with torch.no_grad():
-                    act = prey_agent.select_action(obs[agent_id])
+                    act = prey_agent.select_action(obs[agent_id], evaluate=True)
                     env_actions[agent_id] = (act + 1.0) / 2.0
 
         # --- Step the Environment ---

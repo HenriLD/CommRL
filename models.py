@@ -42,6 +42,14 @@ class Actor(nn.Module):
         log_prob = log_prob.sum(1, keepdim=True)
         
         return action, log_prob
+    
+    def get_deterministic_action(self, state):
+        """
+        Gets the deterministic action for evaluation (the mean of the distribution).
+        """
+        mean, _ = self.forward(state)
+        action = torch.tanh(mean) * self.max_action
+        return action
 
 
 class Critic(nn.Module):

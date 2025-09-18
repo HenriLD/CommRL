@@ -26,9 +26,20 @@ class SACAgent:
         self.log_alpha = torch.zeros(1, requires_grad=True, device=self.device)
         self.alpha_optimizer = optim.Adam([self.log_alpha], lr=lr)
 
-    def select_action(self, state):
+    def select_action(self, state, evaluate=False):
+        """
+        Selects an action from the policy.
+        
+        Args:
+            state: The current state.
+            evaluate (bool): If True, returns a deterministic action. 
+                             If False, returns a stochastic action.
+        """
         state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
-        action, _ = self.actor.sample(state)
+        if evaluate:
+            action = self.actor.get_deterministic_action(state)
+        else:
+            action, _ = self.actor.sample(state)
         return action.detach().cpu().numpy()[0]
 
     def update(self, replay_buffer, batch_size):
