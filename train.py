@@ -2,6 +2,7 @@
 import numpy as np # Import numpy
 from tqdm import tqdm
 from pettingzoo.mpe import simple_tag_v3
+import torch
 
 # Import project components
 import config
@@ -50,13 +51,13 @@ def train():
 
     # --- Logging ---
     episode_rewards_prey = []
-    episode_rewards_adversary = []
+    episode_rewards_adversaries = [[] for _ in range(len(adversary_ids))]
 
     # --- Training Loop ---
     for episode in tqdm(range(config.NUM_EPISODES)):
         obs, _ = env.reset()
         episode_reward_prey = 0
-        episode_reward_adversary = 0
+        episode_reward_adversaries_per_episode = [0] * len(adversary_ids)
 
         for step in range(config.MAX_STEPS_PER_EPISODE):
             # Store the original [-1, 1] actions for the replay buffer
@@ -76,10 +77,11 @@ def train():
             for agent_id in prey_ids:
                  if agent_id in obs:
                     # 1. Get original [-1, 1] action
-                    act = prey_agent.select_action(obs[agent_id])
+                    # act = prey_agent.select_action(obs[agent_id])
+                    act = np.random.uniform(-1, 1, size=prey_action_space.shape[0])
                     original_actions[agent_id] = act
                     # 2. Rescale to [0, 1] for the environment
-                    env_actions[agent_id] = (act + 1.0) / 2.0
+                    env_actions[agent_id] = ((act + 1.0) / 2.0).astype(np.float32)
 
             # --- Step the Environment with Rescaled Actions ---
             next_obs, rewards, terminations, truncations, _ = env.step(env_actions)
@@ -92,7 +94,9 @@ def train():
                     if 'adversary' in agent_id:
                         # Push the ORIGINAL [-1, 1] action to the buffer
                         adversary_buffer.push(obs[agent_id], original_actions[agent_id], rewards[agent_id], next_obs[agent_id], is_done)
-                        episode_reward_adversary += rewards[agent_id]
+                        # Get the index of the adversary to store the reward
+                        adversary_index = adversary_ids.index(agent_id)
+                        episode_reward_adversaries_per_episode[adversary_index] += rewards[agent_id]
                     else:
                         # Push the ORIGINAL [-1, 1] action to the buffer
                         prey_buffer.push(obs[agent_id], original_actions[agent_id], rewards[agent_id], next_obs[agent_id], is_done)
@@ -101,18 +105,26 @@ def train():
             obs = next_obs
             
             adversary_agent.update(adversary_buffer, config.BATCH_SIZE)
-            prey_agent.update(prey_buffer, config.BATCH_SIZE)
+            # prey_agent.update(prey_buffer, config.BATCH_SIZE)
 
             if not obs:
                 break
 
         episode_rewards_prey.append(episode_reward_prey)
-        episode_rewards_adversary.append(episode_reward_adversary / len(adversary_ids))
+        for i in range(len(adversary_ids)):
+            episode_rewards_adversaries[i].append(episode_reward_adversaries_per_episode[i])
 
     env.close()
 
+    # --- Save Models ---
+    torch.save(adversary_agent.actor.state_dict(), 'models/sac_simple_tag/adversary_actor.pth')
+    torch.save(adversary_agent.critic.state_dict(), 'models/sac_simple_tag/adversary_critic.pth')
+    torch.save(prey_agent.actor.state_dict(), 'models/sac_simple_tag/prey_actor.pth')
+    torch.save(prey_agent.critic.state_dict(), 'models/sac_simple_tag/prey_critic.pth')
+    print("Models saved successfully!")
+
     # --- Plotting Results ---
-    plot_rewards(episode_rewards_prey, episode_rewards_adversary)
+    plot_rewards(episode_rewards_prey, episode_rewards_adversaries)
 
 if __name__ == "__main__":
     train()

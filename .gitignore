@@ -208,5 +208,5 @@ __marimo__/
 
 .vscode
 logs
-models
 runs
+training_rewards.png
