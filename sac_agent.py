@@ -41,6 +41,7 @@ class SACAgent:
         else:
             action, _ = self.actor.sample(state)
         return action.detach().cpu().numpy()[0]
+    
 
     def update(self, replay_buffer, batch_size):
         if len(replay_buffer) < batch_size:

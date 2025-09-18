@@ -60,7 +60,7 @@ def train():
     print(f"Checkpoints for this run will be saved in: {checkpoint_dir}")
 
     if config.RESUME_TRAINING:
-        load_checkpoint(adversary_agent, prey_agent, safe_mode=False)
+        load_checkpoint(adversary_agent, prey_agent, safe_mode=False, timestamp=config.TIME_STAMP)
 
     # --- Logging & Alternating Training Setup ---
     episode_rewards_prey = []
@@ -72,6 +72,8 @@ def train():
         obs, _ = env.reset()
         episode_reward_prey = 0
         episode_reward_adversaries_per_episode = [0] * len(adversary_ids)
+
+        alternate_ticker = 0
 
         for step in range(config.MAX_STEPS_PER_EPISODE):
             original_actions = {}
@@ -88,7 +90,7 @@ def train():
                  if agent_id in obs:
                     act = prey_agent.select_action(obs[agent_id])
                     original_actions[agent_id] = act
-                    env_actions[agent_id] = ((act + 1.0) / 2.0).astype(np.float32)
+                    env_actions[agent_id] = ((act + 1.0) / 2.0)
 
             next_obs, rewards, terminations, truncations, _ = env.step(env_actions)
 
@@ -110,8 +112,10 @@ def train():
             if config.ALTERNATING_TRAINING:
                 if current_training_agent == 'adversary':
                     adversary_agent.update(adversary_buffer, config.BATCH_SIZE)
+                    alternate_ticker += 1
                 else: # current_training_agent == 'prey'
                     prey_agent.update(prey_buffer, config.BATCH_SIZE)
+                    alternate_ticker += 5
             else:
                 # Original behavior: update both agents every step
                 adversary_agent.update(adversary_buffer, config.BATCH_SIZE)
@@ -121,7 +125,7 @@ def train():
                 break
 
         # --- Switch agent group at the end of the episode if interval is reached ---
-        if config.ALTERNATING_TRAINING and (episode + 1) % config.TRAINING_INTERVAL == 0:
+        if config.ALTERNATING_TRAINING and (alternate_ticker + 1) % config.TRAINING_INTERVAL == 0:
             current_training_agent = 'prey' if current_training_agent == 'adversary' else 'adversary'
             tqdm.write(f"\nEpisode interval reached. Switching training to: {current_training_agent.upper()}")
 
@@ -145,8 +149,8 @@ def train():
 
     # --- Save Training Results and Configuration ---
     results = {
-        "prey_rewards": episode_rewards_prey,
-        "adversary_rewards": episode_rewards_adversaries,
+        "prey_rewards": float(episode_rewards_prey),
+        "adversary_rewards": [[float(r) for r in adv_rewards] for adv_rewards in episode_rewards_adversaries],
         "config": {
             "NUM_EPISODES": config.NUM_EPISODES,
             "MAX_STEPS_PER_EPISODE": config.MAX_STEPS_PER_EPISODE,
@@ -158,7 +162,8 @@ def train():
             "ENV_CONFIG": config.ENV_CONFIG,
             "ALTERNATING_TRAINING": config.ALTERNATING_TRAINING,
             "TRAINING_INTERVAL": config.TRAINING_INTERVAL,
-            "INITIAL_TRAINING_AGENT": config.INITIAL_TRAINING_AGENT
+            "INITIAL_TRAINING_AGENT": config.INITIAL_TRAINING_AGENT,
+            "PREVIOUS_CHECKPOINT_TIME_STAMP": config.TIME_STAMP if config.RESUME_TRAINING else None
         }
     }
     with open(os.path.join(checkpoint_dir, 'results.json'), 'w') as f:
