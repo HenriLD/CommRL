@@ -81,44 +81,48 @@ def train():
             # --- Action Selection and Rescaling ---
             for agent_id in adversary_ids:
                 if agent_id in obs:
-                    # 1. Get original [-1, 1] action
                     act = adversary_agent.select_action(obs[agent_id])
                     original_actions[agent_id] = act
-                    # 2. Rescale to [0, 1] for the environment
                     env_actions[agent_id] = (act + 1.0) / 2.0
-            
+
             for agent_id in prey_ids:
                  if agent_id in obs:
-                    # 1. Get original [-1, 1] action
-                    # act = prey_agent.select_action(obs[agent_id])
-                    act = np.random.uniform(-1, 1, size=prey_action_space.shape[0])
+                    act = prey_agent.select_action(obs[agent_id])
                     original_actions[agent_id] = act
-                    # 2. Rescale to [0, 1] for the environment
                     env_actions[agent_id] = ((act + 1.0) / 2.0).astype(np.float32)
 
-            # --- Step the Environment with Rescaled Actions ---
             next_obs, rewards, terminations, truncations, _ = env.step(env_actions)
-            
-            # --- Store Experience with Original Actions ---
+
+            # --- Store Experience ---
             for agent_id in obs.keys():
                 is_done = terminations[agent_id] or truncations[agent_id]
-                
                 if agent_id in next_obs:
                     if 'adversary' in agent_id:
-                        # Push the ORIGINAL [-1, 1] action to the buffer
                         adversary_buffer.push(obs[agent_id], original_actions[agent_id], rewards[agent_id], next_obs[agent_id], is_done)
-                        # Get the index of the adversary to store the reward
                         adversary_index = adversary_ids.index(agent_id)
                         episode_reward_adversaries_per_episode[adversary_index] += rewards[agent_id]
                     else:
-                        # Push the ORIGINAL [-1, 1] action to the buffer
                         prey_buffer.push(obs[agent_id], original_actions[agent_id], rewards[agent_id], next_obs[agent_id], is_done)
                         episode_reward_prey += rewards[agent_id]
 
             obs = next_obs
-            
-            adversary_agent.update(adversary_buffer, config.BATCH_SIZE)
-            # prey_agent.update(prey_buffer, config.BATCH_SIZE)
+
+            # --- Agent Updates (with alternating logic) ---
+            if config.ALTERNATING_TRAINING:
+                if current_training_agent == 'adversary':
+                    adversary_agent.update(adversary_buffer, config.BATCH_SIZE)
+                else: # current_training_agent == 'prey'
+                    prey_agent.update(prey_buffer, config.BATCH_SIZE)
+
+                # Check if it's time to switch agent group
+                if (global_step_counter + 1) % config.TRAINING_INTERVAL == 0:
+                    current_training_agent = 'prey' if current_training_agent == 'adversary' else 'adversary'
+                    print(f"\nInterval reached. Switching training to: {current_training_agent.upper()}")
+            else:
+                adversary_agent.update(adversary_buffer, config.BATCH_SIZE)
+                prey_agent.update(prey_buffer, config.BATCH_SIZE)
+
+            global_step_counter += 1
 
             if not obs:
                 break
@@ -152,7 +156,10 @@ def train():
             "LEARNING_RATE": config.LEARNING_RATE,
             "GAMMA": config.GAMMA,
             "TAU": config.TAU,
-            "ENV_CONFIG": config.ENV_CONFIG
+            "ENV_CONFIG": config.ENV_CONFIG,
+            "ALTERNATING_TRAINING": config.ALTERNATING_TRAINING,
+            "TRAINING_INTERVAL": config.TRAINING_INTERVAL,
+            "INITIAL_TRAINING_AGENT": config.INITIAL_TRAINING_AGENT
         }
     }
     with open(os.path.join(checkpoint_dir, 'results.json'), 'w') as f:

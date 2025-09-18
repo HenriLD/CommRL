@@ -29,6 +29,11 @@ GAMMA = 0.99  # Discount factor
 TAU = 0.005   # Soft update factor
 RESUME_TRAINING = True # Whether to load from checkpoints if available
 
+# --- Alternating Training Configuration ---
+ALTERNATING_TRAINING = True
+TRAINING_INTERVAL = 1500  # Number of total steps before switching agent group
+INITIAL_TRAINING_AGENT = "adversary" # Can be "adversary" or "prey"
+
 # --- Environment Configuration (This is the missing part) ---
 ENV_CONFIG = {
     "num_good": 4,
