@@ -20,13 +20,14 @@ except (ImportError, ModuleNotFoundError):
 
 
 # --- Training Hyperparameters ---
-NUM_EPISODES = 250
+NUM_EPISODES = 25
 MAX_STEPS_PER_EPISODE = 100
 REPLAY_BUFFER_CAPACITY = 256_000
 BATCH_SIZE = 4096
 LEARNING_RATE = 3e-4
 GAMMA = 0.99  # Discount factor
 TAU = 0.005   # Soft update factor
+RESUME_TRAINING = True # Whether to load from checkpoints if available
 
 # --- Environment Configuration (This is the missing part) ---
 ENV_CONFIG = {

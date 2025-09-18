@@ -1,15 +1,16 @@
-# train.py
 import numpy as np # Import numpy
 from tqdm import tqdm
 from pettingzoo.mpe import simple_tag_v3
 import torch
+from datetime import datetime
+import os
 
 # Import project components
 import config
 from sac_agent import SACAgent
-from replay_buffer import ReplayBuffer
-from utils import plot_rewards
+from utils import ReplayBuffer, load_checkpoint, plot_rewards
 from pragmatic_wrapper import PragmaticWrapper
+
 
 def train():
     """Main training function."""
@@ -49,6 +50,16 @@ def train():
         tau=config.TAU
     )
     prey_buffer = ReplayBuffer(config.REPLAY_BUFFER_CAPACITY)
+
+    # --- Checkpoint Directory Setup ---
+    base_model_path = os.path.join('models', 'sac_simple_tag')
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    checkpoint_dir = os.path.join(base_model_path, timestamp)
+    os.makedirs(checkpoint_dir, exist_ok=True)
+    print(f"Checkpoints for this run will be saved in: {checkpoint_dir}")
+
+    if config.RESUME_TRAINING:
+        load_checkpoint(adversary_agent, prey_agent, safe_mode=False)
 
     # --- Logging ---
     episode_rewards_prey = []
@@ -118,11 +129,12 @@ def train():
     env.close()
 
     # --- Save Models ---
-    torch.save(adversary_agent.actor.state_dict(), 'models/sac_simple_tag/adversary_actor.pth')
-    torch.save(adversary_agent.critic.state_dict(), 'models/sac_simple_tag/adversary_critic.pth')
-    torch.save(prey_agent.actor.state_dict(), 'models/sac_simple_tag/prey_actor.pth')
-    torch.save(prey_agent.critic.state_dict(), 'models/sac_simple_tag/prey_critic.pth')
-    print("Models saved successfully!")
+    torch.save(adversary_agent.actor.state_dict(), os.path.join(checkpoint_dir, 'adversary_actor.pth'))
+    torch.save(adversary_agent.critic.state_dict(), os.path.join(checkpoint_dir, 'adversary_critic.pth'))
+    torch.save(prey_agent.actor.state_dict(), os.path.join(checkpoint_dir, 'prey_actor.pth'))
+    torch.save(prey_agent.critic.state_dict(), os.path.join(checkpoint_dir, 'prey_critic.pth'))
+    print(f"Models saved successfully in {checkpoint_dir}!")
+
 
     # --- Plotting Results ---
     plot_rewards(episode_rewards_prey, episode_rewards_adversaries)
