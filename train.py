@@ -4,6 +4,7 @@ from pettingzoo.mpe import simple_tag_v3
 import torch
 from datetime import datetime
 import os
+import json
 
 # Import project components
 import config
@@ -138,6 +139,25 @@ def train():
 
     # --- Plotting Results ---
     plot_rewards(episode_rewards_prey, episode_rewards_adversaries)
+
+    # --- Save Training Results and Configuration ---
+    results = {
+        "prey_rewards": episode_rewards_prey,
+        "adversary_rewards": episode_rewards_adversaries,
+        "config": {
+            "NUM_EPISODES": config.NUM_EPISODES,
+            "MAX_STEPS_PER_EPISODE": config.MAX_STEPS_PER_EPISODE,
+            "REPLAY_BUFFER_CAPACITY": config.REPLAY_BUFFER_CAPACITY,
+            "BATCH_SIZE": config.BATCH_SIZE,
+            "LEARNING_RATE": config.LEARNING_RATE,
+            "GAMMA": config.GAMMA,
+            "TAU": config.TAU,
+            "ENV_CONFIG": config.ENV_CONFIG
+        }
+    }
+    with open(os.path.join(checkpoint_dir, 'results.json'), 'w') as f:
+        json.dump(results, f, indent=4)
+    print(f"Training results and configuration saved successfully in {checkpoint_dir}!")
 
 if __name__ == "__main__":
     train()

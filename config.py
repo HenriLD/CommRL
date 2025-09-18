@@ -20,9 +20,9 @@ except (ImportError, ModuleNotFoundError):
 
 
 # --- Training Hyperparameters ---
-NUM_EPISODES = 25
+NUM_EPISODES = 2000
 MAX_STEPS_PER_EPISODE = 100
-REPLAY_BUFFER_CAPACITY = 256_000
+REPLAY_BUFFER_CAPACITY = 512_000
 BATCH_SIZE = 4096
 LEARNING_RATE = 3e-4
 GAMMA = 0.99  # Discount factor
