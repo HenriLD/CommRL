@@ -5,18 +5,14 @@ from pettingzoo.mpe import simple_tag_v3
 # Import project components
 import config
 from sac_agent import SACAgent
-
-import torch
-import time
-from pettingzoo.mpe import simple_tag_v3
-
-# Import project components
-import config
-from sac_agent import SACAgent
 import pygame
 from pragmatic_wrapper import PragmaticWrapper
+from utils import load_checkpoint
 
 clock = pygame.time.Clock()
+
+CHECKPOINT_TIMESTAMP = "20250918_130405"
+NUM_EPISODES = 100
 
 def evaluate():
     """Function to evaluate the trained policies."""
@@ -39,9 +35,6 @@ def evaluate():
         max_action=1.0,
         device=config.DEVICE
     )
-    # Load trained model weights
-    adversary_agent.actor.load_state_dict(torch.load("models/sac_simple_tag/adversary_actor.pth", map_location=config.DEVICE))
-    adversary_agent.critic.load_state_dict(torch.load("models/sac_simple_tag/adversary_critic.pth", map_location=config.DEVICE))
 
     # Prey Agent
     prey_obs_space = env.observation_space(prey_ids[0])
@@ -52,9 +45,9 @@ def evaluate():
         max_action=1.0,
         device=config.DEVICE
     )
-    # Load trained model weights
-    prey_agent.actor.load_state_dict(torch.load("models/sac_simple_tag/prey_actor.pth", map_location=config.DEVICE))
-    prey_agent.critic.load_state_dict(torch.load("models/sac_simple_tag/prey_critic.pth", map_location=config.DEVICE))
+
+    # --- Load Trained Models ---
+    load_checkpoint(adversary_agent, prey_agent, timestamp=CHECKPOINT_TIMESTAMP, safe_mode=True)
 
     # --- Evaluation Loop ---
     obs, _ = env.reset()
@@ -63,7 +56,7 @@ def evaluate():
     env.render()
     time.sleep(1) # Pause for a second to see the start
 
-    for episode in range(config.MAX_STEPS_PER_EPISODE):
+    for episode in range(NUM_EPISODES):
         env_actions = {}
         # --- Action Selection ---
         for agent_id in adversary_ids:
