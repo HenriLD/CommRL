@@ -14,6 +14,7 @@ from pettingzoo.mpe import simple_tag_v3
 import config
 from sac_agent import SACAgent
 import pygame
+from pragmatic_wrapper import PragmaticWrapper
 
 clock = pygame.time.Clock()
 
@@ -24,7 +25,7 @@ def evaluate():
     # --- Environment Setup ---
     # The render_mode="human" argument initializes the pygame window
     env = simple_tag_v3.parallel_env(render_mode="human", **config.ENV_CONFIG)
-    
+    env = PragmaticWrapper(env)
     adversary_ids = [agent for agent in env.possible_agents if 'adversary' in agent]
     prey_ids = [agent for agent in env.possible_agents if 'agent' in agent]
 
