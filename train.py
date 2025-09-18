@@ -22,7 +22,6 @@ def train():
     adversary_ids = [agent for agent in env.possible_agents if 'adversary' in agent]
     prey_ids = [agent for agent in env.possible_agents if 'agent' in agent]
     
-    # --- Agent and Buffer Initialization ---
     # Adversary Agent (shared policy)
     adv_obs_space = env.observation_space(adversary_ids[0])
     adv_action_space = env.action_space(adversary_ids[0])

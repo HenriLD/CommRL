@@ -20,9 +20,9 @@ except (ImportError, ModuleNotFoundError):
 
 
 # --- Training Hyperparameters ---
-NUM_EPISODES = 1000
+NUM_EPISODES = 250
 MAX_STEPS_PER_EPISODE = 100
-REPLAY_BUFFER_CAPACITY = 1_000_000
+REPLAY_BUFFER_CAPACITY = 256_000
 BATCH_SIZE = 4096
 LEARNING_RATE = 3e-4
 GAMMA = 0.99  # Discount factor
@@ -30,7 +30,7 @@ TAU = 0.005   # Soft update factor
 
 # --- Environment Configuration (This is the missing part) ---
 ENV_CONFIG = {
-    "num_good": 1,
+    "num_good": 4,
     "num_adversaries": 2,
     "num_obstacles": 0,
     "max_cycles": MAX_STEPS_PER_EPISODE,

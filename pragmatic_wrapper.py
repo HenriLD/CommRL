@@ -11,7 +11,7 @@ class PragmaticWrapper(BaseParallelWrapper):
     preference for a specific prey. A reward bonus is given to the adversary
     if it moves closer to its preferred prey.
     """
-    def __init__(self, env, pragmatic_reward_bonus=10.0):
+    def __init__(self, env, pragmatic_reward_bonus=0.1):
         """
         Initializes the wrapper.
 
@@ -22,6 +22,9 @@ class PragmaticWrapper(BaseParallelWrapper):
         """
         super().__init__(env)
         self.pragmatic_reward_bonus = pragmatic_reward_bonus
+
+        self.render_mode = self.env.unwrapped.render_mode
+        self.env.unwrapped.render_mode = None
         
         # Get agent IDs
         self.adversary_ids = [agent for agent in self.possible_agents if 'adversary' in agent]
@@ -69,7 +72,7 @@ class PragmaticWrapper(BaseParallelWrapper):
                     
                     # Add reward bonus if the adversary got closer
                     if dist_after < dist_before:
-                        rewards[adv_id] += self.pragmatic_reward_bonus
+                        rewards[adv_id] += self.pragmatic_reward_bonus * (dist_before - dist_after)
 
         self.last_obs = next_obs
         return next_obs, rewards, terminations, truncations, infos
@@ -110,49 +113,63 @@ class PragmaticWrapper(BaseParallelWrapper):
 
     def render(self):
         """
-        Renders the environment and then draws lines directly onto the
-        pygame screen between adversaries and their preferred prey.
+        Renders the environment from scratch, including agents, landmarks,
+        and custom lines. This method is the single source of truth for rendering.
         """
-        # Let the underlying environment render first. This clears the screen
-        # and draws the agents and landmarks.
+        if self.render_mode != "human":
+            return
 
         try:
-            # Access the pygame screen and agent objects from the unwrapped env
-            screen = self.env.unwrapped.screen
-            agents = self.env.unwrapped.world.agents
-            agent_map = {agent.name: agent for agent in agents}
+            unwrapped_env = self.env.unwrapped
+
+            # CORRECTED CHECK: Use 'renderOn' to see if the display is initialized.
+            if not unwrapped_env.renderOn:
+                # This function calls pygame.display.set_mode() and sets renderOn to True
+                unwrapped_env.enable_render(self.render_mode)
             
-            # Screen dimensions for coordinate transformation
-            screen_size = 700
-            scale = screen_size / 2
-            offset = screen_size / 2
+            screen = unwrapped_env.screen
 
-            # Drawing settings
-            line_color = (255, 0, 0)  # Red
+            # Now we have full and exclusive control over the rendering loop
+            screen.fill((255, 255, 255))
+
+            # --- Core rendering logic ---
+            all_poses = [entity.state.p_pos for entity in unwrapped_env.world.entities]
+            cam_range = np.max(np.abs(np.array(all_poses)))
+            if cam_range == 0: cam_range = 1
+
+            for entity in unwrapped_env.world.entities:
+                x, y = entity.state.p_pos
+                y *= -1
+                scr_x = (x / cam_range) * 315 + 350  # Simplified calculation
+                scr_y = (y / cam_range) * 315 + 350
+                radius = entity.size * 350
+                pygame.draw.circle(screen, entity.color * 200, (scr_x, scr_y), radius)
+                pygame.draw.circle(screen, (0, 0, 0), (scr_x, scr_y), radius, 1)
+
+            # --- Custom line drawing ---
+            agent_map = {agent.name: agent for agent in unwrapped_env.world.agents}
+            line_color = (255, 0, 0)
             line_width = 2
-
+            
             for adv_id, prey_id in self.adversary_meanings.items():
                 if adv_id in agent_map and prey_id in agent_map:
                     adv_agent = agent_map[adv_id]
                     prey_agent = agent_map[prey_id]
-
-                    # Convert world coordinates to screen (pixel) coordinates
-                    # The y-axis is often inverted in rendering, so we flip it.
-                    start_pos = (
-                        int(adv_agent.state.p_pos[0] * scale + offset),
-                        int(adv_agent.state.p_pos[1] * -scale + offset)
-                    )
-                    end_pos = (
-                        int(prey_agent.state.p_pos[0] * scale + offset),
-                        int(prey_agent.state.p_pos[1] * -scale + offset)
-                    )
-
-                    # Draw the line directly on the screen surface
+                    start_x, start_y = adv_agent.state.p_pos
+                    start_y *= -1
+                    start_pos = ((start_x / cam_range) * 315 + 350, (start_y / cam_range) * 315 + 350)
+                    end_x, end_y = prey_agent.state.p_pos
+                    end_y *= -1
+                    end_pos = ((end_x / cam_range) * 315 + 350, (end_y / cam_range) * 315 + 350)
                     pygame.draw.line(screen, line_color, start_pos, end_pos, line_width)
             
-            # After drawing our custom lines, update the display to make them visible.
-            self.env.render()
+            # --- Final screen update ---
+            pygame.display.flip()
 
-        except AttributeError:
-            # If the environment doesn't have the expected attributes, just pass.
+        except AttributeError as e:
+            print(f"Rendering failed: {e}")
             pass
+
+    def close(self):
+        # It's good practice to pass close calls to the underlying env.
+        self.env.close()
