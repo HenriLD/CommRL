@@ -11,7 +11,7 @@ from utils import load_checkpoint
 
 clock = pygame.time.Clock()
 
-CHECKPOINT_TIMESTAMP = "20250918_134054"
+CHECKPOINT_TIMESTAMP = "20250919_110642"
 
 def evaluate():
     """Function to evaluate the trained policies."""

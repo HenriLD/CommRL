@@ -5,6 +5,7 @@ import torch
 from datetime import datetime
 import os
 import json
+from torch.utils.tensorboard import SummaryWriter
 
 # Import project components
 import config
@@ -59,6 +60,9 @@ def train():
     os.makedirs(checkpoint_dir, exist_ok=True)
     print(f"Checkpoints for this run will be saved in: {checkpoint_dir}")
 
+    log_dir = os.path.join(checkpoint_dir, "runs")
+    writer = SummaryWriter(log_dir)
+
     if config.RESUME_TRAINING:
         load_checkpoint(adversary_agent, prey_agent, safe_mode=False, timestamp=config.TIME_STAMP)
 
@@ -67,13 +71,15 @@ def train():
     episode_rewards_adversaries = [[] for _ in range(len(adversary_ids))]
     current_training_agent = config.INITIAL_TRAINING_AGENT
 
+    alternate_ticker = 0
+
+    global_step = 0
+
     # --- Training Loop ---
     for episode in tqdm(range(config.NUM_EPISODES)):
         obs, _ = env.reset()
         episode_reward_prey = 0
         episode_reward_adversaries_per_episode = [0] * len(adversary_ids)
-
-        alternate_ticker = 0
 
         for step in range(config.MAX_STEPS_PER_EPISODE):
             original_actions = {}
@@ -83,6 +89,11 @@ def train():
             # 1. Collect observations for each agent type
             adv_obs_batch = [obs[agent_id] for agent_id in adversary_ids if agent_id in obs]
             prey_obs_batch = [obs[agent_id] for agent_id in prey_ids if agent_id in obs]
+
+            if np.isnan(prey_obs_batch).any():
+                print("NaN detected in prey observations!")
+                print(prey_obs_batch)
+                continue 
             
             # 2. Get actions in a batch
             if adv_obs_batch:
@@ -119,11 +130,15 @@ def train():
             # --- Agent Updates (with alternating logic) ---
             if config.ALTERNATING_TRAINING:
                 if current_training_agent == 'adversary':
-                    adversary_agent.update(adversary_buffer, config.BATCH_SIZE)
-                    alternate_ticker += 1
+                    prey_critic_loss, prey_actor_loss, _, _ = prey_agent.update(prey_buffer, config.BATCH_SIZE)
+                    writer.add_scalar('Loss/prey_critic', prey_critic_loss, global_step=global_step)
+                    writer.add_scalar('Loss/prey_actor', prey_actor_loss, global_step=global_step)
+                    global_step += 1
                 else: # current_training_agent == 'prey'
-                    prey_agent.update(prey_buffer, config.BATCH_SIZE)
-                    alternate_ticker += 5
+                    adv_critic_loss, adv_actor_loss = adversary_agent.update(adversary_buffer, config.BATCH_SIZE)
+                    writer.add_scalar('Loss/adversary_critic', adv_critic_loss, global_step=global_step)
+                    writer.add_scalar('Loss/adversary_actor', adv_actor_loss, global_step=global_step)
+                    global_step += 1
             else:
                 # Original behavior: update both agents every step
                 adversary_agent.update(adversary_buffer, config.BATCH_SIZE)
@@ -137,12 +152,20 @@ def train():
             current_training_agent = 'prey' if current_training_agent == 'adversary' else 'adversary'
             tqdm.write(f"\nEpisode interval reached. Switching training to: {current_training_agent.upper()}")
 
+        alternate_ticker += 1
+
         episode_rewards_prey.append(episode_reward_prey)
         for i in range(len(adversary_ids)):
             episode_rewards_adversaries[i].append(episode_reward_adversaries_per_episode[i])
 
+        writer.add_scalar('Reward/prey', episode_rewards_prey, global_step=episode)
+        for i in range(len(adversary_ids)):
+            writer.add_scalar(f'Reward/adversary {i}', episode_rewards_adversaries[i], global_step=episode)
+
 
     env.close()
+
+    writer.close()
 
     # --- Save Models ---
     torch.save(adversary_agent.actor.state_dict(), os.path.join(checkpoint_dir, 'adversary_actor.pth'))
