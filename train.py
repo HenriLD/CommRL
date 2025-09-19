@@ -50,7 +50,7 @@ def train():
         gamma=config.GAMMA,
         tau=config.TAU
     )
-    prey_buffer = ReplayBuffer(config.REPLAY_BUFFER_CAPACITY, prey_obs_space.shape[0], prey_action_space.shape[0])
+    prey_buffer = ReplayBuffer(config.REPLAY_BUFFER_CAPACITY)
 
     # --- Checkpoint Directory Setup ---
     base_model_path = os.path.join('models', 'sac_simple_tag')
@@ -79,18 +79,26 @@ def train():
             original_actions = {}
             env_actions = {}
 
-            # --- Action Selection and Rescaling ---
-            for agent_id in adversary_ids:
-                if agent_id in obs:
-                    act = adversary_agent.select_action(obs[agent_id])
-                    original_actions[agent_id] = act
-                    env_actions[agent_id] = (act + 1.0) / 2.0
+            # --- Batched Action Selection ---
+            # 1. Collect observations for each agent type
+            adv_obs_batch = [obs[agent_id] for agent_id in adversary_ids if agent_id in obs]
+            prey_obs_batch = [obs[agent_id] for agent_id in prey_ids if agent_id in obs]
+            
+            # 2. Get actions in a batch
+            if adv_obs_batch:
+                adv_actions_batch = adversary_agent.select_action_batched(np.array(adv_obs_batch))
+                for i, agent_id in enumerate(adversary_ids):
+                    if agent_id in obs:
+                        original_actions[agent_id] = adv_actions_batch[i]
+                        env_actions[agent_id] = (adv_actions_batch[i] + 1.0) / 2.0
 
-            for agent_id in prey_ids:
-                 if agent_id in obs:
-                    act = prey_agent.select_action(obs[agent_id])
-                    original_actions[agent_id] = act
-                    env_actions[agent_id] = ((act + 1.0) / 2.0)
+            if prey_obs_batch:
+                prey_actions_batch = prey_agent.select_action_batched(np.array(prey_obs_batch))
+                for i, agent_id in enumerate(prey_ids):
+                     if agent_id in obs:
+                        original_actions[agent_id] = prey_actions_batch[i]
+                        env_actions[agent_id] = ((prey_actions_batch[i] + 1.0) / 2.0)
+
 
             next_obs, rewards, terminations, truncations, _ = env.step(env_actions)
 

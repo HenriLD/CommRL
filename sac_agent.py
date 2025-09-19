@@ -42,7 +42,18 @@ class SACAgent:
             action, _ = self.actor.sample(state)
         return action.detach().cpu().numpy()[0]
     
-
+    def select_action_batched(self, states, evaluate=False):
+        """
+        Selects actions from the policy for a batch of states.
+        """
+        states = torch.FloatTensor(states).to(self.device)
+        with torch.no_grad():
+            if evaluate:
+                actions = self.actor.get_deterministic_action(states)
+            else:
+                actions, _ = self.actor.sample(states)
+        return actions.cpu().numpy()
+    
     def update(self, replay_buffer, batch_size):
         if len(replay_buffer) < batch_size:
             return
