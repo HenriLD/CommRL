@@ -102,3 +102,5 @@ class SACAgent:
         # Soft update target networks
         for param, target_param in zip(self.critic.parameters(), self.critic_target.parameters()):
             target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
+
+        return critic_loss.item(), actor_loss.item(), alpha_loss.item(), self.alpha.item()
