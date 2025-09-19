@@ -130,15 +130,21 @@ def train():
             # --- Agent Updates (with alternating logic) ---
             if config.ALTERNATING_TRAINING:
                 if current_training_agent == 'adversary':
-                    prey_critic_loss, prey_actor_loss, _, _ = prey_agent.update(prey_buffer, config.BATCH_SIZE)
-                    writer.add_scalar('Loss/prey_critic', prey_critic_loss, global_step=global_step)
-                    writer.add_scalar('Loss/prey_actor', prey_actor_loss, global_step=global_step)
-                    global_step += 1
+                    # MODIFICATION: Train the adversary agent when it's their turn
+                    update_return = adversary_agent.update(adversary_buffer, config.BATCH_SIZE)
+                    if update_return is not None:
+                        adv_critic_loss, adv_actor_loss, _, _ = update_return
+                        writer.add_scalar('Loss/adversary_critic', adv_critic_loss, global_step=global_step)
+                        writer.add_scalar('Loss/adversary_actor', adv_actor_loss, global_step=global_step)
+                        global_step += 1
                 else: # current_training_agent == 'prey'
-                    adv_critic_loss, adv_actor_loss = adversary_agent.update(adversary_buffer, config.BATCH_SIZE)
-                    writer.add_scalar('Loss/adversary_critic', adv_critic_loss, global_step=global_step)
-                    writer.add_scalar('Loss/adversary_actor', adv_actor_loss, global_step=global_step)
-                    global_step += 1
+                    # MODIFICATION: Train the prey agent when it's their turn
+                    update_return = prey_agent.update(prey_buffer, config.BATCH_SIZE)
+                    if update_return is not None:
+                        prey_critic_loss, prey_actor_loss, _, _ = update_return
+                        writer.add_scalar('Loss/prey_critic', prey_critic_loss, global_step=global_step)
+                        writer.add_scalar('Loss/prey_actor', prey_actor_loss, global_step=global_step)
+                        global_step += 1
             else:
                 # Original behavior: update both agents every step
                 adversary_agent.update(adversary_buffer, config.BATCH_SIZE)
@@ -158,9 +164,9 @@ def train():
         for i in range(len(adversary_ids)):
             episode_rewards_adversaries[i].append(episode_reward_adversaries_per_episode[i])
 
-        writer.add_scalar('Reward/prey', episode_rewards_prey, global_step=episode)
+        writer.add_scalar('Reward/prey', episode_reward_prey, global_step=episode)
         for i in range(len(adversary_ids)):
-            writer.add_scalar(f'Reward/adversary {i}', episode_rewards_adversaries[i], global_step=episode)
+            writer.add_scalar(f'Reward/adversary {i}', episode_reward_adversaries_per_episode[i], global_step=episode)
 
 
     env.close()
