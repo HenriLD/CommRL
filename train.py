@@ -36,7 +36,7 @@ def train():
         gamma=config.GAMMA,
         tau=config.TAU
     )
-    adversary_buffer = ReplayBuffer(config.REPLAY_BUFFER_CAPACITY, adv_obs_space.shape[0], adv_action_space.shape[0])
+    adversary_buffer = ReplayBuffer(config.REPLAY_BUFFER_CAPACITY)
 
     # Prey Agent
     prey_obs_space = env.observation_space(prey_ids[0])
