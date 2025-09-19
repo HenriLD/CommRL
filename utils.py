@@ -48,19 +48,41 @@ def plot_rewards(prey_rewards, adversary_rewards):
     plt.show()
 
 class ReplayBuffer:
-    """A simple FIFO experience replay buffer."""
-    def __init__(self, capacity):
-        self.buffer = deque(maxlen=capacity)
+    """An optimized FIFO experience replay buffer that uses NumPy arrays."""
+    def __init__(self, capacity, state_dim, action_dim):
+        self.capacity = capacity
+        self.ptr = 0
+        self.size = 0
+
+        self.state = np.zeros((capacity, state_dim), dtype=np.float32)
+        self.action = np.zeros((capacity, action_dim), dtype=np.float32)
+        self.reward = np.zeros((capacity, 1), dtype=np.float32)
+        self.next_state = np.zeros((capacity, state_dim), dtype=np.float32)
+        self.done = np.zeros((capacity, 1), dtype=np.float32)
 
     def push(self, state, action, reward, next_state, done):
-        self.buffer.append((state, action, reward, next_state, done))
+        self.state[self.ptr] = state
+        self.action[self.ptr] = action
+        self.reward[self.ptr] = reward
+        self.next_state[self.ptr] = next_state
+        self.done[self.ptr] = done
+
+        self.ptr = (self.ptr + 1) % self.capacity
+        self.size = min(self.size + 1, self.capacity)
 
     def sample(self, batch_size):
-        state, action, reward, next_state, done = zip(*random.sample(self.buffer, batch_size))
-        return np.array(state), np.array(action), np.array(reward), np.array(next_state), np.array(done)
+        ind = np.random.randint(0, self.size, size=batch_size)
+
+        return (
+            self.state[ind],
+            self.action[ind],
+            self.reward[ind],
+            self.next_state[ind],
+            self.done[ind]
+        )
 
     def __len__(self):
-        return len(self.buffer)
+        return self.size
     
 def load_checkpoint(adversary_agent, prey_agent, timestamp=None, safe_mode=True, latest=False):
     """

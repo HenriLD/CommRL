@@ -36,7 +36,7 @@ def train():
         gamma=config.GAMMA,
         tau=config.TAU
     )
-    adversary_buffer = ReplayBuffer(config.REPLAY_BUFFER_CAPACITY)
+    adversary_buffer = ReplayBuffer(config.REPLAY_BUFFER_CAPACITY, adv_obs_space.shape[0], adv_action_space.shape[0])
 
     # Prey Agent
     prey_obs_space = env.observation_space(prey_ids[0])
@@ -50,7 +50,7 @@ def train():
         gamma=config.GAMMA,
         tau=config.TAU
     )
-    prey_buffer = ReplayBuffer(config.REPLAY_BUFFER_CAPACITY)
+    prey_buffer = ReplayBuffer(config.REPLAY_BUFFER_CAPACITY, prey_obs_space.shape[0], prey_action_space.shape[0])
 
     # --- Checkpoint Directory Setup ---
     base_model_path = os.path.join('models', 'sac_simple_tag')
@@ -149,7 +149,7 @@ def train():
 
     # --- Save Training Results and Configuration ---
     results = {
-        "prey_rewards": float(episode_rewards_prey),
+        "prey_rewards": episode_rewards_prey,
         "adversary_rewards": [[float(r) for r in adv_rewards] for adv_rewards in episode_rewards_adversaries],
         "config": {
             "NUM_EPISODES": config.NUM_EPISODES,

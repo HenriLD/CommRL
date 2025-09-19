@@ -20,7 +20,7 @@ except (ImportError, ModuleNotFoundError):
 
  
 # --- Training Hyperparameters ---
-NUM_EPISODES = 100
+NUM_EPISODES = 10
 MAX_STEPS_PER_EPISODE = 100
 REPLAY_BUFFER_CAPACITY = 256_000
 BATCH_SIZE = 16384
