@@ -210,3 +210,4 @@ __marimo__/
 logs
 runs
 training_rewards.png
+training_profile.prof
