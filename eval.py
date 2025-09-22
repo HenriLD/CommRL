@@ -11,7 +11,7 @@ from utils import load_checkpoint
 
 clock = pygame.time.Clock()
 
-CHECKPOINT_TIMESTAMP = "20250922_115409"
+CHECKPOINT_TIMESTAMP = "20250922_143504"
 
 def evaluate():
     """Function to evaluate the trained policies."""
@@ -55,7 +55,7 @@ def evaluate():
     env.render()
     time.sleep(1) # Pause for a second to see the start
 
-    for episode in range(config.NUM_EPISODES):
+    for episode in range(config.MAX_STEPS_PER_EPISODE):
         env_actions = {}
         # --- Action Selection ---
         for agent_id in adversary_ids:
@@ -85,10 +85,6 @@ def evaluate():
 
         if any(terminations.values()) or any(truncations.values()):
             break
-
-        # This delay controls the speed of the visualization.
-        # If it's still freezing, try a smaller value like 0.01
-        print(f"Step {episode+1}/{config.NUM_EPISODES} completed.")
 
         clock.tick(5)
 
