@@ -20,22 +20,22 @@ except (ImportError, ModuleNotFoundError):
  
  
 # --- Training Hyperparameters ---
-NUM_EPISODES = 8000
-MAX_STEPS_PER_EPISODE = 100
-REPLAY_BUFFER_CAPACITY = 256000
-BATCH_SIZE = 4096
-LEARNING_RATE = 3e-4
+NUM_EPISODES = 1250
+MAX_STEPS_PER_EPISODE = 75
+REPLAY_BUFFER_CAPACITY = 128000
+BATCH_SIZE = 4096 * 2
+LEARNING_RATE = 8e-5
 GAMMA = 0.99  # Discount factor
 TAU = 0.005   # Soft update factor
 RESUME_TRAINING = False # Whether to load from checkpoints if available
 TIME_STAMP = "20250919_131928"
 
-# --- Alternating Training Configuration ---
+# Alternating Training Configuration
 ALTERNATING_TRAINING = True
-TRAINING_INTERVAL = 800  # Number of episodes before switching agent group
+TRAINING_INTERVAL = 500  # Number of episodes before switching agent group
 INITIAL_TRAINING_AGENT = "adversary" # Can be "adversary" or "prey"
 
-# --- Environment Configuration (This is the missing part) ---
+# Environment Configuration
 ENV_CONFIG = {
     "num_good": 4,
     "num_adversaries": 2,

@@ -166,7 +166,7 @@ def train():
         if config.ALTERNATING_TRAINING and current_training_agent == 'adversary':
             alternate_ticker += 1 
         else:
-            alternate_ticker += 4   
+            alternate_ticker += 2   
 
         episode_rewards_prey.append(episode_reward_prey)
         for i in range(len(adversary_ids)):
