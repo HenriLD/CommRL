@@ -61,7 +61,7 @@ class ReplayBuffer:
 
     def __len__(self):
         return len(self.buffer)
-    
+
 def load_checkpoint(adversary_agent, prey_agent, timestamp=None, safe_mode=True, latest=False):
     """
     Loads a checkpoint for both adversary and prey agents.
@@ -94,16 +94,24 @@ def load_checkpoint(adversary_agent, prey_agent, timestamp=None, safe_mode=True,
             print(f"Warning: Model file not found at {file_path}")
             return
 
+        # --- CHANGE ---
+        # Get the device the model is currently on (e.g., 'cuda:0' or 'cpu').
+        # This makes the loading process automatic and robust.
+        device = next(model.parameters()).device
+
         if safe_mode:
             try:
-                model.load_state_dict(torch.load(file_path))
+                # Load state dict, mapping it directly to the model's device.
+                state_dict = torch.load(file_path, map_location=device, weights_only=False)
+                model.load_state_dict(state_dict)
                 print(f"Loaded model from {file_path}")
             except RuntimeError:
-                state_dict = torch.load(file_path)
+                state_dict = torch.load(file_path, map_location=device, weights_only=False)
                 model.load_state_dict(state_dict, strict=False)
                 print(f"Loaded model from {file_path} with non-strict loading (safe mode).")
         else:
-            model.load_state_dict(torch.load(file_path), strict=True)
+            state_dict = torch.load(file_path, map_location=device, weights_only=False)
+            model.load_state_dict(state_dict, strict=True)
             print(f"Loaded model from {file_path} with strict loading.")
 
     # Load all agent models
