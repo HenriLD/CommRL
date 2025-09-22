@@ -11,7 +11,7 @@ class PragmaticWrapper(BaseParallelWrapper):
     preference for a specific prey. A reward bonus is given to the adversary
     if it moves closer to its preferred prey.
     """
-    def __init__(self, env, pragmatic_reward_bonus=0.1):
+    def __init__(self, env, pragmatic_reward_bonus=0.01):
         """
         Initializes the wrapper.
 
