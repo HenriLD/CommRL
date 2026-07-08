@@ -21,6 +21,7 @@ def main():
     p.add_argument("--lam", type=float, default=0.1)
     p.add_argument("--workers", type=int, default=4)
     p.add_argument("--conditions", nargs="+", default=CONDITIONS)
+    p.add_argument("--script", default="train_masac.py")
     args = p.parse_args()
 
     here = os.path.dirname(os.path.abspath(__file__))
@@ -39,7 +40,7 @@ def main():
             cond, seed, outdir = jobs.pop(0)
             os.makedirs(outdir, exist_ok=True)
             log = open(os.path.join(outdir, "log.txt"), "w")
-            cmd = [sys.executable, os.path.join(here, "train_masac.py"),
+            cmd = [sys.executable, os.path.join(here, args.script),
                    "--condition", cond, "--seed", str(seed),
                    "--cycles", str(args.cycles), "--lam", str(args.lam),
                    "--outdir", outdir]

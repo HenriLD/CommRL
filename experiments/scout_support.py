@@ -32,22 +32,29 @@ DT = 0.1
 DAMPING = 0.25
 ACCEL = 5.0
 SCOUT_SPEED = 1.0
-SUPPORT_SPEED = 0.8
-SITE_RADIUS = 0.8
-SITE_JITTER = 0.15
+SUPPORT_SPEED = 0.6
+SITE_RADIUS = 1.0
+SITE_JITTER = 0.1
 COVER_RADIUS = 0.3
-BONUS = 2.0
+KEY_RADIUS = 0.2
+BONUS = 3.0
 EPISODE_LEN = 50
+
+# The scout must first visit a pickup waypoint near the center before its
+# presence at the target counts. Its first-leg motion is therefore
+# task-uninformative about the target: any information the supporter gets
+# early must be actively signaled.
 
 # observation layout per agent:
 #   own pos (2) | own vel (2) | role one-hot (2)
 #   own meaning one-hot (3; zeros for supporter)
-#   site rel pos (3*2) | partner rel pos (2) | partner vel (2)
+#   site rel pos (3*2) | waypoint rel pos (2) | has-key flag (1)
+#   partner rel pos (2) | partner vel (2)
 #   partner meaning one-hot (3; zeros unless oracle supporter)
-OBS_DIM = 2 + 2 + 2 + 3 + 6 + 2 + 2 + 3  # = 22
+OBS_DIM = 2 + 2 + 2 + 3 + 6 + 2 + 1 + 2 + 2 + 3  # = 25
 ACT_DIM = 2
 PREF_SLICE = slice(6, 9)      # own meaning block (masked in learned listener)
-PARTNER_PREF_SLICE = slice(19, 22)
+PARTNER_PREF_SLICE = slice(22, 25)
 
 
 class ScoutSupportEnv:
@@ -68,11 +75,13 @@ class ScoutSupportEnv:
         radius = SITE_RADIUS + (torch.rand((E, N_SITES), generator=self.gen) * 2 - 1) * SITE_JITTER
         self.sites = torch.stack([radius * torch.cos(angles),
                                   radius * torch.sin(angles)], dim=-1).to(self.device)
-        # scout starts near the center (ambiguous), supporter anywhere
-        scout_pos = (torch.rand((E, 2), generator=self.gen) * 2 - 1) * 0.3
+        # pickup waypoint near the center; scout starts away from it
+        self.waypoint = ((torch.rand((E, 2), generator=self.gen) * 2 - 1) * 0.25).to(self.device)
+        scout_pos = (torch.rand((E, 2), generator=self.gen) * 2 - 1)
         sup_pos = (torch.rand((E, 2), generator=self.gen) * 2 - 1)
         self.pos = torch.stack([scout_pos, sup_pos], dim=1).to(self.device)
         self.vel = torch.zeros((E, N_AGENTS, 2), device=self.device)
+        self.has_key = torch.zeros(E, device=self.device)
         self.target = torch.randint(0, N_SITES, (E,), generator=self.gen).to(self.device)
         # belief state for the filter listener
         self.log_belief = torch.full((E, N_MEANINGS), -math.log(N_MEANINGS),
@@ -97,12 +106,15 @@ class ScoutSupportEnv:
             role[:, i] = 1.0
             own_m = m_oh if i == 0 else zeros3
             site_rel = (self.sites - own_pos.unsqueeze(1)).reshape(E, -1)
+            wp_rel = self.waypoint - own_pos
+            key = self.has_key.unsqueeze(1)
             j = 1 - i
             partner_rel = self.pos[:, j] - own_pos
             partner_vel = self.vel[:, j]
             partner_m = m_oh if (i == 1 and self.oracle) else zeros3
             obs.append(torch.cat([own_pos, own_vel, role, own_m, site_rel,
-                                  partner_rel, partner_vel, partner_m], dim=1))
+                                  wp_rel, key, partner_rel, partner_vel,
+                                  partner_m], dim=1))
         return torch.stack(obs, dim=1)  # (E, N, OBS_DIM)
 
     def step(self, actions):
@@ -115,18 +127,24 @@ class ScoutSupportEnv:
         self.pos = (self.pos + self.vel * DT).clamp(-1.5, 1.5)
         self.t += 1
 
+        # pick up the key when the scout reaches the waypoint
+        d_wp = (self.pos[:, 0] - self.waypoint).norm(dim=-1)
+        self.has_key = torch.maximum(self.has_key, (d_wp < KEY_RADIUS).float())
+
         tgt = torch.gather(self.sites, 1,
                            self.target.view(-1, 1, 1).expand(-1, 1, 2)).squeeze(1)  # (E,2)
         d_scout = (self.pos[:, 0] - tgt).norm(dim=-1)
         d_sup = (self.pos[:, 1] - tgt).norm(dim=-1)
-        both_in = (d_scout < COVER_RADIUS) & (d_sup < COVER_RADIUS)
-        r_ext = BONUS * both_in.float() - d_scout - d_sup
+        both_in = (d_scout < COVER_RADIUS) & (d_sup < COVER_RADIUS) & (self.has_key > 0)
+        # scout shaping: reach the waypoint first, then the target
+        scout_shape = torch.where(self.has_key > 0, d_scout, d_wp + 1.0)
+        r_ext = BONUS * both_in.float() - scout_shape - d_sup
 
         done = self.t >= EPISODE_LEN
         info = {
             "r_ext": r_ext,
             "pref_bonus": BONUS * both_in.float(),
-            "dist_pen": d_scout + d_sup,
+            "dist_pen": scout_shape + d_sup,
             "coll_pen": torch.zeros_like(r_ext),
             "commit_acc": self.commitment_accuracy(),
         }
