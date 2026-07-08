@@ -1,4 +1,4 @@
-# Pragmatic Reward Experiments (Conference Paper)
+# Pragmatic Reward Experiments
 
 Self-contained PyTorch implementation of the *preference Simple Spread* task and
 the pragmatic-reward conditions compared in `papers/Conference_Paper/main.tex`.
