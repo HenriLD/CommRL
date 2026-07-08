@@ -215,3 +215,6 @@ training_profile.prof
 experiments/results*/
 *.pt
 
+papers/ICASSP_Paper/
+papers/Master_Thesis/
+

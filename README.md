@@ -11,8 +11,9 @@ dedicated channel.
 - `experiments/` — environment, training, and evaluation code for the
   conference paper (see its README for details and reproduction commands).
 - `papers/Conference_Paper/` — current paper source (`main.tex`, figures).
-- `papers/Master_Thesis/` — thesis this work grew out of.
-- `papers/ICASSP_Paper/` — earlier 4-page draft, superseded by the conference paper.
+
+The thesis and an earlier ICASSP draft this paper grew out of are kept
+locally under `papers/` but not tracked here.
 
 The original 2025 prototype (PettingZoo simple_tag + SAC) was removed from the
 working tree; it remains in git history.
