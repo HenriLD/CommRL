@@ -22,6 +22,7 @@ def main():
     p.add_argument("--workers", type=int, default=4)
     p.add_argument("--conditions", nargs="+", default=CONDITIONS)
     p.add_argument("--script", default="train_masac.py")
+    p.add_argument("--voi", type=float, default=None)
     args = p.parse_args()
 
     here = os.path.dirname(os.path.abspath(__file__))
@@ -44,6 +45,8 @@ def main():
                    "--condition", cond, "--seed", str(seed),
                    "--cycles", str(args.cycles), "--lam", str(args.lam),
                    "--outdir", outdir]
+            if args.voi is not None:
+                cmd += ["--voi", str(args.voi)]
             proc = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT)
             running.append((proc, f"{cond}_s{seed}"))
             print(f"launched {cond} s{seed} (pid {proc.pid}); "
