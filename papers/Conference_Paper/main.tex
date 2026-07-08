@@ -275,10 +275,17 @@ Two further measurements put the above in perspective. First, the oracle: giving
 
 Together these results reframe the evaluation of implicit-communication methods: task reward alone conflates the cost of signaling with its value, and a method should be judged on (a) whether its intrinsic reward is achievable (calibration), (b) how much decodable information the resulting behavior carries (post-hoc probes), and (c) what it pays for that information (task-reward gap). On all three criteria the learned listener dominates the hand-crafted ones.
 
-\subsection{Robustness to the Communicative Weight $\lambda$}
+\subsection{The Weight $\lambda$: Dial or Landmine?}
 \label{ssec:results_lambda}
 
-%%% ABLATION_PLACEHOLDER %%%
+We sweep the communicative weight for both listener families (2 seeds per new point; Fig.~\ref{fig:lambda_ablation}). With the learned listener, $\lambda$ behaves like a dial along an information-performance frontier: $\lambda=0.1$ is free ($\Rext=1.03$, $\Rcomm=-0.13$); $\lambda=0.3$ buys near-saturated clarity ($\Rcomm=-0.05$) for a modest task cost ($\Rext=0.84$); and $\lambda=1.0$ pushes the communicative reward to genuinely \emph{positive} information gain ($\Rcomm=+0.62$)---behavior more informative than task-optimal motion---at a large task cost ($\Rext=-0.80$) as agents privilege signaling over covering landmarks. With the exclusivity listener, no operating point buys information: at $\lambda=0.03$ the reward is simply ignored ($\Rcomm$ stuck at $-2.6$, task performance at baseline level), and at $\lambda=0.1$ it destroys 47\% of task reward with $\Rcomm$ still at $-2.4$. Calibration is precisely what turns $\lambda$ from a landmine into a dial.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.9\columnwidth]{img/lambda_ablation.png}
+\caption{Final task reward vs.\ communicative weight $\lambda$. The learned listener trades task reward for information smoothly; the exclusivity listener offers no $\lambda$ at which information is gained.}
+\label{fig:lambda_ablation}
+\end{figure}
 
 \subsection{Qualitative Behavior}
 \label{ssec:results_qualitative}
