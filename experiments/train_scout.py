@@ -28,9 +28,19 @@ from train_masac import Actor, CentralCritic, ReplayBuffer
 HANDCRAFTED = ("simple", "exclusivity", "progress", "filter")
 
 
+def inject_ear(obs, posterior):
+    """Fill the supporter's partner-meaning slot with the listener posterior."""
+    obs = obs.clone()
+    obs[:, 1, S.PARTNER_PREF_SLICE] = posterior
+    return obs
+
+
 def evaluate(actor, cond, listener, seed, n_envs=64):
     env = S.ScoutSupportEnv(n_envs, oracle=(cond == "oracle"), seed=seed)
     obs = env.reset()
+    ear = cond in ("ear", "learned_ear")
+    if ear:
+        obs = inject_ear(obs, torch.full((n_envs, S.N_MEANINGS), 1 / 3))
     gen = torch.Generator().manual_seed(seed)
     keys = ["r_ext", "pref_bonus", "dist_pen", "commit_acc",
             "probe_acc", "probe_ce", "comm_rw", "listener_acc"]
@@ -55,6 +65,9 @@ def evaluate(actor, cond, listener, seed, n_envs=64):
                 tot["comm_rw"] += rc.mean().item()
                 pred = listener(obs[:, 0], a[:, 0]).argmax(-1)
                 tot["listener_acc"] += (pred == target).float().mean().item()
+            if ear:
+                post = F.softmax(listener(obs[:, 0], a[:, 0]), dim=-1)
+                next_obs = inject_ear(next_obs, post)
             obs = next_obs
             steps += 1
     return {k: v / steps for k, v in tot.items()}
@@ -64,7 +77,8 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--condition", required=True,
                    choices=["baseline", "oracle", "simple", "exclusivity",
-                            "progress", "filter", "learned", "learned_prag"])
+                            "progress", "filter", "learned", "learned_prag",
+                            "ear", "learned_ear"])
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--lam", type=float, default=0.1)
     p.add_argument("--cycles", type=int, default=150)
@@ -83,8 +97,9 @@ def main():
     np.random.seed(args.seed)
     os.makedirs(args.outdir, exist_ok=True)
 
-    lam = 0.0 if args.condition in ("baseline", "oracle") else args.lam
-    use_listener = args.condition in ("learned", "learned_prag")
+    lam = 0.0 if args.condition in ("baseline", "oracle", "ear") else args.lam
+    use_listener = args.condition in ("learned", "learned_prag", "ear", "learned_ear")
+    ear = args.condition in ("ear", "learned_ear")
 
     env = S.ScoutSupportEnv(args.n_envs, oracle=(args.condition == "oracle"),
                             seed=args.seed)
@@ -111,6 +126,8 @@ def main():
 
     for cycle in range(args.cycles):
         obs = env.reset()
+        if ear:
+            obs = inject_ear(obs, torch.full((args.n_envs, S.N_MEANINGS), 1 / 3))
         for t in range(S.EPISODE_LEN):
             with torch.no_grad():
                 if total_steps < 2000:
@@ -127,6 +144,10 @@ def main():
                 with torch.no_grad():
                     r_comm[:, 0] = S.scout_comm_reward(env, a, args.condition,
                                                        gen=gen, pre_pos=pre_pos)
+            if ear:
+                with torch.no_grad():
+                    post = F.softmax(listener(obs[:, 0], a[:, 0]), dim=-1)
+                next_obs = inject_ear(next_obs, post)
 
             buf.push(obs, a, info["r_ext"], r_comm, next_obs,
                      done and t == S.EPISODE_LEN - 1, env.pref)
@@ -143,16 +164,18 @@ def main():
                     logits = listener(b_obs[:, 0], b_act[:, 0])
                     l_loss = F.cross_entropy(logits, b_target)
                     opt_l.zero_grad(); l_loss.backward(); opt_l.step()
-                    with torch.no_grad():
-                        if args.condition == "learned":
-                            rc = listener.comm_reward(b_obs[:, 0], b_act[:, 0], b_target)
-                        else:
-                            alt = torch.rand((args.batch, 16, 2)) * 2 - 1
-                            rc = listener.comm_reward(b_obs[:, 0], b_act[:, 0],
-                                                      b_target, pragmatic=True,
-                                                      alt_actions=alt)
-                        b_rcomm = torch.zeros_like(b_rcomm)
-                        b_rcomm[:, 0] = rc
+                    if lam > 0:
+                        with torch.no_grad():
+                            if args.condition == "learned_prag":
+                                alt = torch.rand((args.batch, 16, 2)) * 2 - 1
+                                rc = listener.comm_reward(b_obs[:, 0], b_act[:, 0],
+                                                          b_target, pragmatic=True,
+                                                          alt_actions=alt)
+                            else:
+                                rc = listener.comm_reward(b_obs[:, 0], b_act[:, 0],
+                                                          b_target)
+                            b_rcomm = torch.zeros_like(b_rcomm)
+                            b_rcomm[:, 0] = rc
 
                 r_total = b_rext + lam * b_rcomm.sum(dim=1)
                 alpha = log_alpha.exp().detach()
