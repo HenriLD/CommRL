@@ -35,7 +35,7 @@ def inject_ear(obs, posterior):
     return obs
 
 
-def evaluate(actor, cond, listener, seed, n_envs=64):
+def evaluate(actor, cond, listener, seed, n_envs=64, device=torch.device("cpu")):
     env = S.ScoutSupportEnv(n_envs, oracle=(cond == "oracle"), seed=seed)
     obs = env.reset()
     ear = cond in ("ear", "learned_ear", "filter_ear")
@@ -48,7 +48,8 @@ def evaluate(actor, cond, listener, seed, n_envs=64):
     steps = 0
     with torch.no_grad():
         for t in range(S.EPISODE_LEN):
-            a, _ = actor.sample(obs, deterministic=True)
+            a, _ = actor.sample(obs.to(device), deterministic=True)
+            a = a.cpu()
             dirs, target = env.goal_dirs(), env.target
             pre_pos = env.pos[:, 0].clone()
             next_obs, info, done = env.step(a)
@@ -62,15 +63,17 @@ def evaluate(actor, cond, listener, seed, n_envs=64):
                 rc = S.scout_comm_reward(env, a, kind, gen=gen, pre_pos=pre_pos)
                 tot["comm_rw"] += rc.mean().item()
             elif listener is not None:
-                rc = listener.comm_reward(obs[:, 0], a[:, 0], target)
+                so, sa = obs[:, 0].to(device), a[:, 0].to(device)
+                rc = listener.comm_reward(so, sa, target.to(device))
                 tot["comm_rw"] += rc.mean().item()
-                pred = listener(obs[:, 0], a[:, 0]).argmax(-1)
+                pred = listener(so, sa).argmax(-1).cpu()
                 tot["listener_acc"] += (pred == target).float().mean().item()
             if ear:
                 if cond == "filter_ear":
                     post = env.log_belief.exp()
                 else:
-                    post = F.softmax(listener(obs[:, 0], a[:, 0]), dim=-1)
+                    post = F.softmax(listener(obs[:, 0].to(device),
+                                              a[:, 0].to(device)), dim=-1).cpu()
                 next_obs = inject_ear(next_obs, post)
             obs = next_obs
             steps += 1
@@ -97,11 +100,13 @@ def main():
     p.add_argument("--voi", type=float, default=1.0,
                    help="post-key weight on R_comm (pre-key weight is 1); "
                         "<1 concentrates the subsidy where information matters")
+    p.add_argument("--device", default="cpu")
     args = p.parse_args()
 
     torch.set_num_threads(args.threads)
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
+    device = torch.device(args.device)
     os.makedirs(args.outdir, exist_ok=True)
 
     lam = 0.0 if args.condition in ("baseline", "oracle", "ear") else args.lam
@@ -110,20 +115,22 @@ def main():
 
     env = S.ScoutSupportEnv(args.n_envs, oracle=(args.condition == "oracle"),
                             seed=args.seed)
-    actor = Actor(obs_dim=S.OBS_DIM, act_dim=S.ACT_DIM)
-    critic = CentralCritic(n_agents=S.N_AGENTS, obs_dim=S.OBS_DIM, act_dim=S.ACT_DIM)
-    critic_t = CentralCritic(n_agents=S.N_AGENTS, obs_dim=S.OBS_DIM, act_dim=S.ACT_DIM)
+    actor = Actor(obs_dim=S.OBS_DIM, act_dim=S.ACT_DIM).to(device)
+    critic = CentralCritic(n_agents=S.N_AGENTS, obs_dim=S.OBS_DIM,
+                           act_dim=S.ACT_DIM).to(device)
+    critic_t = CentralCritic(n_agents=S.N_AGENTS, obs_dim=S.OBS_DIM,
+                             act_dim=S.ACT_DIM).to(device)
     critic_t.load_state_dict(critic.state_dict())
     opt_a = torch.optim.Adam(actor.parameters(), lr=args.lr)
     opt_c = torch.optim.Adam(critic.parameters(), lr=args.lr)
-    log_alpha = torch.zeros(1, requires_grad=True)
+    log_alpha = torch.zeros(1, requires_grad=True, device=device)
     opt_alpha = torch.optim.Adam([log_alpha], lr=args.lr)
     target_entropy = -float(S.ACT_DIM)
 
-    listener = S.ScoutListener() if use_listener else None
+    listener = S.ScoutListener().to(device) if use_listener else None
     opt_l = torch.optim.Adam(listener.parameters(), lr=1e-3) if use_listener else None
 
-    buf = ReplayBuffer(400_000, torch.device("cpu"), n_agents=S.N_AGENTS,
+    buf = ReplayBuffer(400_000, device, n_agents=S.N_AGENTS,
                        obs_dim=S.OBS_DIM, act_dim=S.ACT_DIM)
     gen = torch.Generator().manual_seed(args.seed + 999)
 
@@ -141,7 +148,8 @@ def main():
                     a = torch.rand((args.n_envs, S.N_AGENTS, S.ACT_DIM),
                                    generator=gen) * 2 - 1
                 else:
-                    a, _ = actor.sample(obs)
+                    a, _ = actor.sample(obs.to(device))
+                    a = a.cpu()
             pre_pos = env.pos[:, 0].clone()
             pre_key = 1.0 - env.has_key.clone()
             target = env.target
@@ -158,7 +166,8 @@ def main():
                     if args.condition == "filter_ear":
                         post = env.log_belief.exp()
                     else:
-                        post = F.softmax(listener(obs[:, 0], a[:, 0]), dim=-1)
+                        post = F.softmax(listener(obs[:, 0].to(device),
+                                                  a[:, 0].to(device)), dim=-1).cpu()
                 next_obs = inject_ear(next_obs, post)
 
             buf.push(obs, a, info["r_ext"], r_comm, next_obs,
@@ -179,7 +188,8 @@ def main():
                     if lam > 0:
                         with torch.no_grad():
                             if args.condition == "learned_prag":
-                                alt = torch.rand((args.batch, 16, 2)) * 2 - 1
+                                alt = torch.rand((args.batch, 16, 2),
+                                                 device=device) * 2 - 1
                                 rc = listener.comm_reward(b_obs[:, 0], b_act[:, 0],
                                                           b_target, pragmatic=True,
                                                           alt_actions=alt)
@@ -221,7 +231,7 @@ def main():
                         pt.mul_(1 - args.tau).add_(args.tau * ps)
 
         if (cycle + 1) % 10 == 0 or cycle == args.cycles - 1:
-            m = evaluate(actor, args.condition, listener, seed=12345)
+            m = evaluate(actor, args.condition, listener, seed=12345, device=device)
             m.update(cycle=cycle + 1, steps=total_steps,
                      wall_min=round((time.time() - t0) / 60, 1))
             history.append(m)

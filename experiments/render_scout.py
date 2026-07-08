@@ -78,6 +78,8 @@ def main():
                        edgecolor=SITE_COLORS[i], linewidth=2.0, zorder=1,
                        alpha=0.9 if i == target else 1.0)
         ax.scatter(*wp, marker="X", s=110, color="k", zorder=2)
+        ax.add_patch(plt.Circle(wp, S.KEY_RADIUS, fill=False, color="k",
+                                lw=0.8, ls=(0, (2, 2)), alpha=0.55, zorder=2))
         draw_timed_path(ax, traj[:, 0], SCOUT_COLOR)
         draw_timed_path(ax, traj[:, 1], SUPPORT_COLOR)
         ax.set_title(label)
