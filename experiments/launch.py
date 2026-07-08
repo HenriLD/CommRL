@@ -24,6 +24,7 @@ def main():
     p.add_argument("--script", default="train_masac.py")
     p.add_argument("--voi", type=float, default=None)
     p.add_argument("--device", default=None)
+    p.add_argument("--threads", type=int, default=None)
     args = p.parse_args()
 
     here = os.path.dirname(os.path.abspath(__file__))
@@ -50,6 +51,8 @@ def main():
                 cmd += ["--voi", str(args.voi)]
             if args.device is not None:
                 cmd += ["--device", args.device]
+            if args.threads is not None:
+                cmd += ["--threads", str(args.threads)]
             proc = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT)
             running.append((proc, f"{cond}_s{seed}"))
             print(f"launched {cond} s{seed} (pid {proc.pid}); "

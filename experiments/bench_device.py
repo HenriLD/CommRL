@@ -58,10 +58,18 @@ def bench(device, batch, iters=200, threads=4):
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--device", default="cpu")
+    p.add_argument("--batch", type=int, default=None,
+                   help="single batch size (for concurrency tests)")
+    p.add_argument("--iters", type=int, default=200)
+    p.add_argument("--threads", type=int, default=4)
     args = p.parse_args()
-    if args.device == "cuda":
-        print("device:", torch.cuda.get_device_name(0), torch.__version__)
-    for batch in [512, 2048, 8192]:
-        ups = bench(args.device, batch)
-        print(f"batch {batch:5d}: {ups:7.1f} updates/s "
-              f"({ups * batch:,.0f} samples/s)")
+    if args.batch:
+        ups = bench(args.device, args.batch, iters=args.iters, threads=args.threads)
+        print(f"{ups:.1f}")
+    else:
+        if args.device == "cuda":
+            print("device:", torch.cuda.get_device_name(0), torch.__version__)
+        for batch in [512, 2048, 8192]:
+            ups = bench(args.device, batch)
+            print(f"batch {batch:5d}: {ups:7.1f} updates/s "
+                  f"({ups * batch:,.0f} samples/s)")
