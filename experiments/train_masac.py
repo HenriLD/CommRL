@@ -32,14 +32,14 @@ LOG_STD_MIN, LOG_STD_MAX = -5.0, 2.0
 
 
 class Actor(nn.Module):
-    def __init__(self, hidden=256):
+    def __init__(self, hidden=256, obs_dim=OBS_DIM, act_dim=ACT_DIM):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Linear(OBS_DIM, hidden), nn.ReLU(),
+            nn.Linear(obs_dim, hidden), nn.ReLU(),
             nn.Linear(hidden, hidden), nn.ReLU(),
         )
-        self.mu = nn.Linear(hidden, ACT_DIM)
-        self.log_std = nn.Linear(hidden, ACT_DIM)
+        self.mu = nn.Linear(hidden, act_dim)
+        self.log_std = nn.Linear(hidden, act_dim)
 
     def forward(self, obs):
         h = self.net(obs)
@@ -61,9 +61,9 @@ class Actor(nn.Module):
 
 
 class CentralCritic(nn.Module):
-    def __init__(self, hidden=256):
+    def __init__(self, hidden=256, n_agents=N_AGENTS, obs_dim=OBS_DIM, act_dim=ACT_DIM):
         super().__init__()
-        in_dim = N_AGENTS * OBS_DIM + N_AGENTS * ACT_DIM
+        in_dim = n_agents * obs_dim + n_agents * act_dim
         def q():
             return nn.Sequential(
                 nn.Linear(in_dim, hidden), nn.ReLU(),
@@ -78,16 +78,17 @@ class CentralCritic(nn.Module):
 
 
 class ReplayBuffer:
-    def __init__(self, capacity, device):
+    def __init__(self, capacity, device, n_agents=N_AGENTS, obs_dim=OBS_DIM,
+                 act_dim=ACT_DIM):
         self.capacity = capacity
         self.device = device
-        self.obs = torch.zeros((capacity, N_AGENTS, OBS_DIM))
-        self.act = torch.zeros((capacity, N_AGENTS, ACT_DIM))
+        self.obs = torch.zeros((capacity, n_agents, obs_dim))
+        self.act = torch.zeros((capacity, n_agents, act_dim))
         self.r_ext = torch.zeros(capacity)
-        self.r_comm = torch.zeros((capacity, N_AGENTS))
-        self.next_obs = torch.zeros((capacity, N_AGENTS, OBS_DIM))
+        self.r_comm = torch.zeros((capacity, n_agents))
+        self.next_obs = torch.zeros((capacity, n_agents, obs_dim))
         self.done = torch.zeros(capacity)
-        self.pref = torch.zeros((capacity, N_AGENTS), dtype=torch.long)
+        self.pref = torch.zeros((capacity, n_agents), dtype=torch.long)
         self.idx, self.full = 0, False
 
     def push(self, obs, act, r_ext, r_comm, next_obs, done, pref):
