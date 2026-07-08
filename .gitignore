@@ -211,3 +211,7 @@ logs
 runs
 training_rewards.png
 training_profile.prof
+# experiment outputs
+experiments/results*/
+*.pt
+
