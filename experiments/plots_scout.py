@@ -14,32 +14,10 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-LABELS = {
-    "baseline": "MASAC baseline",
-    "oracle": "Oracle (target shared)",
-    "simple": "PRM: simple $L_0$",
-    "exclusivity": "PRM: exclusivity $L_0$",
-    "progress": "PRM: progress $L_0$",
-    "filter": "PRM: filter $L_0$",
-    "learned": "PRM: learned listener",
-    "learned_prag": "PRM: learned + RSA",
-    "ear": "Listener-augmented (ear)",
-    "learned_ear": "Ear + pragmatic reward",
-}
-COLORS = {
-    "baseline": "#888888",
-    "oracle": "#111111",
-    "simple": "#ff9f4a",
-    "exclusivity": "#d62728",
-    "progress": "#9467bd",
-    "filter": "#8c564b",
-    "learned": "#1f77b4",
-    "learned_prag": "#2ca02c",
-    "ear": "#e377c2",
-    "learned_ear": "#17becf",
-}
+from paperstyle import use_style, plot_series, LABELS, COLORS
+
 ORDER = ["baseline", "oracle", "simple", "exclusivity", "progress", "filter",
-         "learned", "learned_prag", "ear", "learned_ear"]
+         "learned", "learned_prag", "ear", "learned_ear", "filter_ear"]
 
 
 def load(resroot):
@@ -59,20 +37,19 @@ def series(histories, key):
 
 
 def curve_plot(data, key, ylabel, fname, figdir, conds=None):
-    plt.figure(figsize=(5.2, 3.4))
+    use_style()
+    fig, ax = plt.subplots(figsize=(5.0, 3.2))
     for cond in (conds or ORDER):
         if cond not in data:
             continue
         s, m, e = series(data[cond], key)
-        plt.plot(s / 1e3, m, label=LABELS[cond], color=COLORS[cond], lw=1.8)
-        plt.fill_between(s / 1e3, m - e, m + e, color=COLORS[cond], alpha=0.18, lw=0)
-    plt.xlabel("Environment steps (thousands)")
-    plt.ylabel(ylabel)
-    plt.legend(fontsize=7, frameon=False, ncol=2)
-    plt.grid(alpha=0.25, lw=0.5)
-    plt.tight_layout()
-    plt.savefig(os.path.join(figdir, fname), dpi=200)
-    plt.close()
+        plot_series(ax, s / 1e3, m, e, cond)
+    ax.set_xlabel("Environment steps (thousands)")
+    ax.set_ylabel(ylabel)
+    ax.legend(frameon=False, ncol=2)
+    fig.tight_layout()
+    fig.savefig(os.path.join(figdir, fname))
+    plt.close(fig)
     print("wrote", fname)
 
 

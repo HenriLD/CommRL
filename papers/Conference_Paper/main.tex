@@ -31,7 +31,7 @@
 \maketitle
 %
 \begin{abstract}
-Reinforcement Learning (RL) agents often fail in cooperative settings because their actions, while individually optimal, are unpredictable to their partners. This challenge is magnified in human-agent teams, where an agent's opacity can erode trust and team effectiveness. We address this limitation by establishing a formal equivalence between pragmatic inference, as formalized by the Rational Speech Act (RSA) framework, and Maximum Entropy Reinforcement Learning (Max-Ent RL). This theoretical bridge yields a principled intrinsic reward for ``legible'' behavior---actions that clearly communicate an agent's private state---computed offline by a Pragmatic Reward Module (PRM) that adds no latency to decision-making. The framework exposes the \emph{literal listener} $L_0$, the assumed common ground against which clarity is measured, as its central design choice. We study a spectrum of listeners, from hand-crafted geometric heuristics to a listener \emph{learned} jointly with the policy, and show that the learned instantiation turns the pragmatic reward into a variational lower bound on the mutual information between an agent's intention and its observable behavior, unifying pragmatic and information-theoretic approaches to implicit communication. Experiments in a cooperative navigation task with private preferences show that hand-crafted listeners induce \emph{miscalibrated signaling}---costly behavior whose intrinsic reward remains below the uninformative level---degrading task performance by up to 47\% while adding no decodable information, whereas the learned listener is reliably optimized at no task cost and exposes a controllable trade-off between information disclosure and task performance. Our framework provides a formal model, and a practical recipe, for agents that are not only effective but also strategically collaborative.
+Reinforcement Learning (RL) agents often fail in cooperative settings because their actions, while individually optimal, are unpredictable to their partners. This challenge is magnified in human-agent teams, where an agent's opacity can erode trust and team effectiveness. We address this limitation by establishing a formal equivalence between pragmatic inference, as formalized by the Rational Speech Act (RSA) framework, and Maximum Entropy Reinforcement Learning (Max-Ent RL). This theoretical bridge yields a principled intrinsic reward for ``legible'' behavior---actions that clearly communicate an agent's private state---computed offline by a Pragmatic Reward Module (PRM) that adds no latency to decision-making. The framework exposes the \emph{literal listener} $L_0$, the assumed common ground against which clarity is measured, as its central design choice. We study a spectrum of listeners, from hand-crafted geometric heuristics to a listener \emph{learned} jointly with the policy, and show that the learned instantiation turns the pragmatic reward into a variational lower bound on the mutual information between an agent's intention and its observable behavior, unifying pragmatic and information-theoretic approaches to implicit communication. We evaluate on two environments separated by an \emph{oracle-gap} criterion that bounds the task value of communication: a cooperative-navigation control where the gap is near zero, and \emph{scout-support}, a new tractable benchmark modeled on pickup-and-delivery teams in which a scout's private target only pays off if a slower teammate infers it early. The experiments dissect implicit communication into its two sides. On the speaker side, hand-crafted listeners range from \emph{miscalibrated signaling}---costly behavior whose own intrinsic reward stays below the uninformative level---to calibrated designs, while the learned listener renders behavior decodable at 92\%. On the receiver side, no reward-trained teammate learns to read any of it; deploying the learned listener as the teammate's ``ear'' at execution recovers part of the gap. What remains is a two-sided coordination equilibrium in which uniformly-integrated clarity rewards buy \emph{lazy} clarity---informative where it is cheap, silent where the partner needs it---which we argue redirects the design problem for legibility rewards from \emph{how much} to \emph{when}. Our framework provides a formal model, a benchmark, and a diagnosis for agents that are not only effective but also strategically collaborative.
 \end{abstract}
 %
 \begin{keywords}
@@ -54,7 +54,8 @@ Our contributions are as follows:
 \item We establish a formal equivalence between the objective functions of Max-Ent RL and the RSA framework, allowing the RSA ``listener value'' to be imported as a principled intrinsic reward for legibility, and we show that purely communicative models such as CRSA \cite{estienne2025collaborative} are recovered as a myopic special case ($\gamma=0$, $\Rext=0$).
 \item We operationalize the theory as a \emph{Pragmatic Reward Module} (PRM): an offline component, compatible with centralized training and decentralized execution (CTDE), that computes $\Rcomm$ from replayed transitions and adds no latency at execution time.
 \item We characterize the space of literal listeners and prove that instantiating $L_0$ with a listener trained by maximum likelihood on the agents' behavior makes the expected pragmatic reward a variational lower bound on the mutual information $I(M; S, A)$ between private intentions and observable behavior. This connects pragmatic rewards to information-regularization \cite{strouse2018learning} and skill-discriminability \cite{eysenbach2019diversity} objectives, and positions them as the \emph{literal} (0-th order) special case of our framework.
-\item We evaluate the resulting reward family in a cooperative navigation task with private preferences. Hand-crafted listeners exhibit a failure mode we term \emph{miscalibrated signaling}---agents pay a large task-reward cost for signals that carry no decodable information, detectable as an intrinsic reward stuck below the uninformative level---while the learned listener is reliably optimized at no task cost, and its weight $\lambda$ traces a controllable information-performance trade-off. Oracle and post-hoc probe comparisons additionally show that the task value of intent transmission can be near zero even when intentions are private, arguing that legibility methods must be evaluated on calibration, information transmitted, and task cost separately.
+\item We propose an \emph{oracle-gap} criterion for benchmarking communicative rewards---the gap between a baseline and an oracle given all private states bounds the task value of communication---and introduce \emph{scout-support}, a tractable two-agent benchmark with a large, structural gap: a scout's private target only pays off if a slower supporter infers it early, while a pickup waypoint makes the scout's task-optimal motion uninformative exactly when information is needed. A cooperative-navigation control with near-zero gap completes the pair.
+\item Empirically, we dissect implicit communication into speaker and receiver contributions. Hand-crafted listeners range from \emph{miscalibrated signaling} (intrinsic reward stuck below the uninformative level, task cost up to 47\% in the control) to well-calibrated progress- and filter-based designs; yet no speaker-side reward alone moves the teammate's understanding. The learned listener proves the channel exists---decoding the speaker at $92\%$---and deploying it as the teammate's \emph{ear} at execution recovers part of the oracle gap, isolating a joint-exploration equilibrium, not legibility, as the remaining obstacle.
 \end{itemize}
 
 \section{Related Work}
@@ -159,13 +160,21 @@ L_k(m|a) = \frac{S_k(a|m)}{\sum\limits_{m'} S_k(a|m')}, \label{eq:rsa_recursion}
 \end{equation}
 and $L^* = L_{N_r}$. The choice of $L_0$ is the framework's most consequential free parameter, and we study three instantiations.
 
-\textbf{(i) Hand-crafted geometric listener.} A computationally cheap heuristic interprets actions by their geometric similarity to ideal paths. For agent position $p$ and each meaning $m$, let $v_m$ be the unit vector toward the nearest target consistent with $m$. A na\"ive score is $S(a,m) = \alpha_{\text{temp}}\cos(a, v_m)$. To capture unambiguity explicitly, an \emph{exclusivity} variant penalizes similarity to competing meanings,
+\textbf{(i) Direction listeners.} A computationally cheap heuristic interprets actions by their geometric similarity to ideal paths. For agent position $p$ and each meaning $m$, let $v_m$ be the unit vector toward the nearest target consistent with $m$. A na\"ive score is $S(a,m) = \alpha_{\text{temp}}\cos(a, v_m)$ (\emph{simple}). To capture unambiguity explicitly, an \emph{exclusivity} variant penalizes similarity to competing meanings,
 \begin{equation}
 S_{\text{excl}}(a, m) = \alpha_{\text{temp}} \big( \cos(a, v_m) - \max_{m' \neq m} \cos(a, v_{m'}) \big), \label{eq:exclusivity}
 \end{equation}
 and $L_0(\cdot|a) = \mathrm{softmax}_m\, S_{\text{excl}}(a,\cdot)$. This listener rewards actions aligned with the ideal path toward the true target \emph{and} misaligned with the ideal paths of all confusable targets.
 
-\textbf{(ii) Learned listener.} Hand-crafted listeners presuppose that the features they score are the ones an actual observer would use. To remove this assumption, we train a network $\Ltheta(m|s,a)$ by maximum likelihood on the replay buffer to predict an agent's true meaning from its publicly observable context and action (the private state is masked from the input). The listener is trained concurrently with the policy, so the common ground \emph{co-adapts}: the reward only credits signals that are actually decodable from the agents' current behavioral distribution. With $N_r=0$ the reward is simply $\Rcomm = \log \Ltheta(m_t|s_t,a_t) + \log|\mathcal{M}|$; with $N_r\geq 1$ the RSA recursion (Eq.~\ref{eq:rsa_recursion}) is applied on top of $\Ltheta$, adding contrastive reasoning over alternatives.
+\textbf{(ii) Progress listener.} Instead of instantaneous direction, this listener scores the \emph{progress} an action realizes toward each candidate target: $S_{\text{prog}}(a,m) \propto d_{t-1}(m) - d_t(m)$, the per-step reduction in distance to the target consistent with $m$, normalized by the maximum step length. This mirrors the cost-to-go formulation of legibility in robot motion \cite{dragan2013legibility}, which scores partial trajectories by how efficiently they advance each candidate goal.
+
+\textbf{(iii) Filter listener.} Instantaneous listeners ignore history: an action that is uninformative in isolation may complete a legible trajectory. The filter listener maintains a recursive belief over meanings, updated multiplicatively from per-step directional likelihoods with exponential forgetting,
+\begin{equation}
+b_t(m) \propto b_{t-1}(m)^{\rho}\, \exp\!\big(\alpha_{\text{temp}} \cos(a_t, v_m)\big), \label{eq:filter}
+\end{equation}
+and rewards the log-belief in the true meaning, $\Rcomm = \log b_t(m_t) + \log|\mathcal{M}|$. Under discounting this reproduces the trajectory-integral character of legibility---early clarity is worth more than late clarity---and makes $\Rcomm$ explicitly non-Markovian, which the PRM accommodates because rewards are computed offline.
+
+\textbf{(iv) Learned listener.} Hand-crafted listeners presuppose that the features they score are the ones an actual observer would use. To remove this assumption, we train a network $\Ltheta(m|s,a)$ by maximum likelihood on the replay buffer to predict an agent's true meaning from its publicly observable context and action (the private state is masked from the input). The listener is trained concurrently with the policy, so the common ground \emph{co-adapts}: the reward only credits signals that are actually decodable from the agents' current behavioral distribution. With $N_r=0$ the reward is simply $\Rcomm = \log \Ltheta(m_t|s_t,a_t) + \log|\mathcal{M}|$; with $N_r\geq 1$ the RSA recursion (Eq.~\ref{eq:rsa_recursion}) is applied on top of $\Ltheta$, adding contrastive reasoning over alternatives.
 
 The learned instantiation admits an information-theoretic characterization.
 
@@ -210,34 +219,88 @@ Purely communicative agents arise as a special case. Setting $\Rext=0$ and $\lam
 \section{Experimental Setup}
 \label{sec:methodology}
 
-\subsection{Environment}
+\subsection{Environments}
 \label{ssec:environments}
 
-We evaluate on a cooperative navigation task with private preferences, a modified \emph{Simple Spread} scenario in the spirit of the Multi-Agent Particle Environments \cite{lowe2017multi}. Three agents and three landmarks occupy a continuous 2D arena; each landmark carries a color (a random permutation of three categories per episode) and each agent holds a \emph{private preference} $m_i$ for one color, drawn uniformly at random. The team reward at each step comprises (a) a preference bonus for every landmark covered by an agent whose preference matches the landmark's color, (b) a distance penalty equal to the sum, over landmarks, of the distance to the nearest agent, and (c) a collision penalty per overlapping pair. Actions are continuous 2D forces; episodes last 50 steps. Each agent observes its own position and velocity, its preference (one-hot), landmark relative positions and colors, and teammates' relative positions and velocities---but \emph{not} teammates' preferences. Coordination therefore hinges on inferring who is claiming what from motion alone: an agent must both act on its own preference and legibly signal it, so that teammates can confidently cover the remaining landmarks.
+A meaningful benchmark for communicative rewards must certify that communication has task value at all. We therefore adopt an \emph{oracle-gap} criterion: comparing a baseline against an oracle that receives all private states in its observations measures the maximum task reward that intent transmission can unlock. We evaluate on two environments, one on each side of this criterion.
+
+\textbf{Environment A: scout-support (oracle gap $\approx 0.5$ per step).} A two-agent team in a continuous 2D arena, modeled on scout-and-support patterns in search-and-rescue and warehouse logistics: a fast \emph{scout} privately knows which of three sites is the true target, and a slower \emph{supporter} earns the team a bonus only while both agents occupy the target together. Crucially, the scout must first visit a central \emph{pickup waypoint} before its presence at the target counts (a forklift fetches the pallet before the dock). During this first leg, the scout's task-optimal motion is identical regardless of target---structurally uninformative---so any early information the supporter receives must be actively signaled, e.g.\ by curving the approach to the waypoint toward the future destination, the anticipatory motion studied in robot legibility \cite{dragan2013legibility}. Sites lie on a circle (radius $1.0$, $120^\circ$ apart, jittered); the supporter's lower speed ($0.6$ vs.\ $1.0$) makes late commitment costly. The reward is the rendezvous bonus minus both agents' distances to their current objectives; episodes last 50 steps. The supporter observes the scout's position and velocity but never its target. Meanings are the three sites; only the scout receives $\Rcomm$.
+
+\textbf{Environment B: preference spread (oracle gap $\approx 0$).} Our earlier cooperative-navigation control: three agents and three colored landmarks, each agent holding a private color preference; the team is rewarded for matched coverage, penalized for distance and collisions. Because proximity resolves most coordination and acting on one's own preference is extrinsically rewarded, an oracle gains nothing---communication here has no task value to unlock, which is precisely what makes it a useful control for measuring what a communicative reward \emph{costs}.
 
 \subsection{Models and Conditions}
 \label{ssec:models}
 
-All agents are trained with multi-agent Soft Actor-Critic (MASAC)---parameter-shared Gaussian actors and a centralized twin critic over joint observations and actions, with automatic entropy tuning---the natural multi-agent extension of the Max-Ent framework our theory is built on. We compare six conditions that differ only in the reward and observation content:
-\begin{itemize}
-\item \textbf{Baseline}: $\lambda=0$; extrinsic reward only.
-\item \textbf{Oracle}: $\lambda=0$, but observations include teammates' true preferences. Since no inference is needed, the oracle-baseline gap measures the task value of intent information itself.
-\item \textbf{PRM (exclusivity $L_0$)}: the hand-crafted geometric listener with exclusivity scoring (Eq.~\ref{eq:exclusivity}) and one step of RSA recursion over $K=64$ sampled alternative actions.
-\item \textbf{PRM (simple $L_0$)}: identical but without the exclusivity term, i.e., plain cosine scoring.
-\item \textbf{PRM (learned)}: the learned listener $\Ltheta$ at recursion depth $N_r=0$; $\Ltheta$ is a 2-layer MLP trained by cross-entropy on replayed transitions, with the private preference masked from its input.
-\item \textbf{PRM (learned + RSA)}: the learned listener with one step of RSA recursion over 16 sampled alternatives.
-\end{itemize}
-All PRM conditions use $\lambda=0.1$ applied to the per-team sum of agents' communicative rewards. Each condition is run with 3 random seeds for 480k environment steps (64 vectorized environments). Full hyperparameters are listed in Table~\ref{tab:hyperparams}.
+All agents are trained with multi-agent Soft Actor-Critic (MASAC)---parameter-shared Gaussian actors (roles distinguished by a one-hot flag) and a centralized twin critic over joint observations and actions, with automatic entropy tuning---the natural multi-agent extension of the Max-Ent framework our theory is built on. Conditions differ only in reward and observation content: \textbf{baseline} ($\lambda=0$); \textbf{oracle} ($\lambda=0$, private states shared through observations); the four hand-crafted listeners of Section~\ref{ssec:listeners}---\textbf{simple}, \textbf{exclusivity} (both with one RSA step over $K=64$ sampled alternatives), \textbf{progress}, and \textbf{filter}; and the two learned ones---\textbf{learned} ($N_r=0$) and \textbf{learned + RSA} (one recursion step over 16 alternatives). $\Ltheta$ is a 2-layer MLP trained by cross-entropy on replayed transitions with the private state masked from its input. All PRM conditions use $\lambda=0.1$. Each condition is run with 3 random seeds for 480k environment steps (64 vectorized environments); Environment B was run with the direction-based and learned listeners only. Full hyperparameters are listed in Table~\ref{tab:hyperparams}.
 
 \subsection{Evaluation Metrics}
 \label{ssec:metrics}
 
-We evaluate periodically on 64 held-out episodes with deterministic policies. \emph{Task performance} is the mean per-step team reward and its components. \emph{Team specialization} is the fraction of landmarks claimed uniquely (each agent assigned to its nearest landmark); a score of 1 indicates perfect division of labor. \emph{Legibility} is measured by a fixed \emph{probe listener}---the simple geometric listener, used identically across all conditions---reporting the accuracy with which an agent's true preference is recovered from its instantaneous action (probe intent accuracy). The probe is computed over all steps, including those where an agent already rests on its target and its actions are uninformative, so absolute values understate legibility; because the probe is fixed and external to all training conditions, however, \emph{relative} improvements reflect genuinely clearer behavior rather than adaptation to the metric. For learned-listener conditions we additionally report $\Ltheta$'s own held-out accuracy, and for all PRM conditions the achieved communicative reward $\Rcomm$. Finally, we measure \emph{post-hoc decodability}: for every trained run, a fresh listener network is trained from scratch on deterministic rollouts of the final policy and evaluated on held-out episodes. This quantifies how much intent information each condition's \emph{converged} behavior carries under an identical decoding budget, independently of any listener used during training.
+We evaluate periodically on 64 held-out episodes with deterministic policies. \emph{Task performance} is the mean per-step team reward and its components. In Environment A, \emph{commitment accuracy} is the fraction of steps in which the supporter's nearest site is the true target---a direct behavioral readout of how early it decodes the scout. In Environment B, \emph{team specialization} is the fraction of landmarks claimed uniquely (each agent assigned to its nearest landmark); a score of 1 indicates perfect division of labor. \emph{Legibility} is measured by a fixed \emph{probe listener}---the simple geometric listener, used identically across all conditions---reporting the accuracy with which an agent's true preference is recovered from its instantaneous action (probe intent accuracy). The probe is computed over all steps, including those where an agent already rests on its target and its actions are uninformative, so absolute values understate legibility; because the probe is fixed and external to all training conditions, however, \emph{relative} improvements reflect genuinely clearer behavior rather than adaptation to the metric. For learned-listener conditions we additionally report $\Ltheta$'s own held-out accuracy, and for all PRM conditions the achieved communicative reward $\Rcomm$. Finally, we measure \emph{post-hoc decodability}: for every trained run, a fresh listener network is trained from scratch on deterministic rollouts of the final policy and evaluated on held-out episodes. This quantifies how much intent information each condition's \emph{converged} behavior carries under an identical decoding budget, independently of any listener used during training.
 
 \section{Results}
 \label{sec:results}
 
-Table~\ref{tab:final} summarizes final performance; Figures~\ref{fig:task_reward}--\ref{fig:comm_reward} show training dynamics. The results separate cleanly along the common-ground axis: what matters is not \emph{whether} a pragmatic reward is used, but \emph{which listener} anchors it.
+We present Environment A---where the oracle gap certifies that communication has task value---as the primary benchmark, and Environment B as the control that isolates what a communicative reward costs when there is nothing to say. Across both, the results separate cleanly along the common-ground axis: what matters is not \emph{whether} a pragmatic reward is used, but \emph{which listener} anchors it.
+
+\subsection{Environment A: When Communication Pays}
+\label{ssec:results_scout}
+
+Table~\ref{tab:scout} summarizes Environment A; Figure~\ref{fig:commit_curve} shows the time course of the supporter's understanding. The oracle gap is large and stable ($1.17$ vs.\ $0.86$ per-step reward; commitment accuracy $.88$ vs.\ $.82$), certifying that intent transmission is worth roughly a third of the achievable reward range.
+
+\textbf{Speaker-side rewards alone do not close the gap.} All four hand-crafted listeners improve task reward moderately ($0.93$--$0.96$), but their commitment accuracy is indistinguishable from the baseline ($.824$ vs.\ $.820$), and their time-resolved curves lie exactly on the baseline's (Fig.~\ref{fig:commit_curve}): the supporter does not understand any earlier. The gains therefore come from densified shaping of the \emph{scout}, not from communication---a diagnosis made possible by measuring understanding directly rather than through reward. The calibration ranking within the family is instructive: the direction listeners remain miscalibrated ($\Rcomm$ of $-1.3$ and $-1.8$), while the progress and filter listeners---the two designed around realized motion rather than idealized directions---are optimized to or past the uninformative level ($+0.13$ and $-0.07$). Better hand-crafted design fixes calibration; it still does not produce a listening teammate.
+
+\textbf{The learned listener reveals the real bottleneck.} With the learned listener, the scout's behavior becomes almost perfectly decodable: the co-trained $\Ltheta$ reads the target at $91$--$92\%$ accuracy ($\Rcomm \approx +0.92$, near its $\log 3$ ceiling). Yet task reward and commitment stay at baseline. The speaker learned to talk, a supervised network can hear it---but the \emph{RL supporter} cannot learn, from reward alone, to extract three bits of intent from subtle motion cues. In Environment B the failure was a miscalibrated common ground; here, with calibration solved, the bottleneck moves to the receiver.
+
+\textbf{Deploying the listener as the teammate's ear.} The PRM's listener need not be discarded after training: because it reads only publicly observable scout state, its posterior can be fed to the supporter as three extra observation features at execution time---a \emph{listener-augmented} team, still decentralized-executable. This completes a $2{\times}2$ design: ear on/off $\times$ pragmatic reward on/off. At $\lambda=0.1$ the ear recovers about a sixth of the oracle gap in task reward ($0.91$ vs.\ $0.86$) but leaves commitment timing unchanged: the listener decodes near-perfectly \emph{on average}, yet during the scout's first leg---exactly when the supporter needs information---task-optimal motion carries none, the posterior is uniform, and the ear is silent when it matters. Neither side has an incentive to move first: the scout gains no task reward from signals nobody uses, and the supporter cannot learn to trust features that are uninformative under the current speaker. This is the joint-exploration pathology of emergent communication \cite{eccles2019biases} reproduced in an implicit, motion-based channel.
+
+The pragmatic reward should be precisely the tie-breaker for this equilibrium---a subsidy for speaking into a silent channel. Raising the subsidy, however, does not break the tie: at $\lambda=0.3$ and $\lambda=0.5$ (3 seeds each) commitment remains at baseline ($.823$, $.830$) while the communicative reward merely creeps upward ($+0.91 \to +0.93$) and task reward degrades and destabilizes ($0.78\pm.08$, then $0.47\pm.19$). The failure is diagnostic, not mysterious: the per-step reward $\log\Ltheta(m|s_t,a_t)$ weighs all timesteps equally, so the cheapest way to earn it is to sharpen the decodability of the second leg---behavior that is \emph{already} informative---rather than to buy expensive clarity in the first leg, where the team's value of information is concentrated. We call this the \emph{lazy channel}: maximizing average decodability is not maximizing decodability when the partner needs it. Legibility rewards, as standardly defined, optimize the wrong integral.
+%%% EAR_LAMBDA_PLACEHOLDER %%%
+
+\begin{table}[t]
+\centering
+\caption{Environment A final performance (mean $\pm$ s.e.m., 3 seeds). Commit is the supporter's commitment accuracy; $\Rcomm$ as before; $\Ltheta$ acc.\ is the co-trained listener's accuracy where applicable.}
+\label{tab:scout}
+\setlength{\tabcolsep}{3.0pt}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Condition} & $\Rext$ & Commit & $\Rcomm$ & $\Ltheta$ acc. \\
+\midrule
+Baseline & $0.86\pm.05$ & $.820$ & --- & --- \\
+Oracle & $1.17\pm.01$ & $.882$ & --- & --- \\
+Simple $L_0$ & $0.96\pm.01$ & $.824$ & $-1.31$ & --- \\
+Exclusivity $L_0$ & $0.95\pm.01$ & $.824$ & $-1.82$ & --- \\
+Progress $L_0$ & $0.93\pm.01$ & $.824$ & $+0.13$ & --- \\
+Filter $L_0$ & $0.93\pm.01$ & $.824$ & $-0.07$ & --- \\
+Learned $\Ltheta$ & $0.83\pm.02$ & $.817$ & $+0.91$ & $.912$ \\
+Learned + RSA & $0.89\pm.01$ & $.824$ & $+0.92$ & $.918$ \\
+Ear ($\lambda=0$) & $0.91\pm.01$ & $.825$ & --- & $.913$ \\
+Ear $+$ $\Rcomm$ ($\lambda=0.1$) & $0.89\pm.01$ & $.821$ & $+0.91$ & $.915$ \\
+Ear $+$ $\Rcomm$ ($\lambda=0.3$) & $0.78\pm.08$ & $.823$ & $+0.91$ & $.911$ \\
+Ear $+$ $\Rcomm$ ($\lambda=0.5$) & $0.47\pm.19$ & $.830$ & $+0.93$ & $.927$ \\
+%%% EAR_TABLE_ROWS %%%
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.95\columnwidth]{img/scout_commit_curve.png}
+\caption{Supporter commitment accuracy over the episode (converged policies, 256 held-out episodes). All non-oracle conditions overlap: neither speaker-side rewards nor the deployed ear move the moment of understanding, because no condition produces first-leg signal for the ear to hear.}
+\label{fig:commit_curve}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{img/scout_trajectories.png}
+\caption{A held-out Environment A episode. Squares are sites (the true target filled), the cross is the pickup waypoint. Trajectories darken with time (dot every 5 steps; dense dots = slow motion): the baseline supporter hedges and corrects late, while informed supporters commit early. Open circle = start, star = end.}
+\label{fig:scout_traj}
+\end{figure}
+
+\subsection{Environment B: The Cost of Signaling with Nothing to Say}
+\label{ssec:results_spread}
+
+Table~\ref{tab:final} summarizes final performance in the control environment; Figures~\ref{fig:task_reward}--\ref{fig:comm_reward} show training dynamics.
 
 \begin{table}[t]
 \centering
@@ -250,35 +313,37 @@ Table~\ref{tab:final} summarizes final performance; Figures~\ref{fig:task_reward
 \midrule
 Baseline & $1.07\pm.03$ & $.847$ & --- & $.598\pm.02$ \\
 Oracle & $0.99\pm.04$ & $.841$ & --- & $.589\pm.01$ \\
-Exclusivity $L_0$ & $0.57\pm.04$ & $.815$ & $-2.39$ & $.604\pm.02$ \\
+\midrule
 Simple $L_0$ & $0.93\pm.06$ & $.833$ & $-1.33$ & $.599\pm.01$ \\
+Exclusivity $L_0$ & $0.57\pm.04$ & $.815$ & $-2.39$ & $.604\pm.02$ \\
+\midrule
 Learned $\Ltheta$ & $1.03\pm.08$ & $.847$ & $-0.13$ & $.582\pm.03$ \\
-Learned + RSA & $\mathbf{1.09\pm.03}$ & $\mathbf{.853}$ & $-0.13$ & $.578\pm.02$ \\
+Learned + RSA & $\mathbf{1.09\pm.03}$ & $\mathbf{.853}$ & $\mathbf{-0.13}$ & $.578\pm.02$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\subsection{Hand-Crafted Listeners: Miscalibrated Signaling}
+\subsubsection{Hand-Crafted Listeners: Miscalibrated Signaling}
 \label{ssec:results_heuristic}
 
 The exclusivity listener exhibits an instructive failure mode, which we also observed in preliminary experiments with an independent, larger-scale implementation. The composite reward is clearly operative---early in training it even \emph{accelerates} learning (Fig.~\ref{fig:task_reward}), and it drives the geometric probe accuracy up faster than any other condition (Fig.~\ref{fig:probe_acc})---yet the agent never comes close to optimizing the communicative reward itself. $\Rcomm$ plateaus around $-2.4$ (Fig.~\ref{fig:comm_reward}), \emph{below} the uninformative level of zero: the pragmatic listener built on this common ground assigns the true meaning \emph{less} probability than a uniform guess. The exclusivity score (Eq.~\ref{eq:exclusivity}) demands that an action align with the true target's direction while misaligning with every competing direction; when landmarks subtend similar bearings this margin is geometrically unsatisfiable, so the agent pays a permanent tax for a signal that cannot be produced. The tax is visible everywhere: final task reward drops by $47\%$ relative to the baseline, distance and collision penalties rise, and specialization saturates lower ($.815$ vs.\ $.847$). The simple cosine listener, which removes the exclusivity margin, is correspondingly less harmful ($\Rext = 0.93$) and achieves a better---but still negative---$\Rcomm$. We call this failure mode \emph{miscalibrated signaling}: a hand-crafted common ground rewards behavior the policy cannot realize and an observer cannot decode, converting the intrinsic reward into pure interference.
 
-\subsection{Learned Listeners: Calibrated Legibility}
+\subsubsection{Learned Listeners: Calibrated Legibility}
 \label{ssec:results_learned}
 
 The learned listener changes the picture qualitatively. Both learned conditions steadily optimize their communicative reward from $-0.65$ toward zero (Fig.~\ref{fig:comm_reward}), confirming that the co-adapted reward is learnable---by construction, it only credits distinctions that are actually present in the behavioral distribution. This calibration eliminates the destructive interference: task performance is statistically indistinguishable from the baseline ($1.03\pm.08$ and $1.09\pm.03$ vs.\ $1.07\pm.03$), with the pragmatic variant nominally best on task reward and specialization. During training, the co-adapting listener's accuracy climbs from chance ($1/3$) to $\approx.43$ and is still rising at the end (Fig.~\ref{fig:listener_acc}), with the RSA-recursed variant consistently ahead of the purely literal one---suggesting that contrastive reasoning over alternatives extracts signal that maximum-likelihood decoding alone does not.
 
-\subsection{How Much Was There to Say? Oracles and Post-Hoc Probes}
+\subsubsection{How Much Was There to Say? Oracles and Post-Hoc Probes}
 \label{ssec:results_oracle}
 
 Two further measurements put the above in perspective. First, the oracle: giving agents their teammates' true preferences does \emph{not} improve task performance ($0.99$ vs.\ $1.07$). Near-optimal coordination in this environment is achievable from positions and velocities alone---who is closest to what resolves most conflicts---so the marginal task value of intent information is small. Second, the post-hoc probes: a fresh listener trained on any condition's \emph{converged} behavior decodes intentions at $.58$--$.60$ accuracy (Table~\ref{tab:final}), with no significant differences across conditions. Because acting on one's preference is extrinsically rewarded, converged behavior is already informative; at $\lambda=0.1$ there is simply little decodable information left for a calibrated reward to add---which the learned listener correctly reflects by saturating near zero, and which the hand-crafted listeners ignore by charging a permanent task tax for no informational return.
 
 Together these results reframe the evaluation of implicit-communication methods: task reward alone conflates the cost of signaling with its value, and a method should be judged on (a) whether its intrinsic reward is achievable (calibration), (b) how much decodable information the resulting behavior carries (post-hoc probes), and (c) what it pays for that information (task-reward gap). On all three criteria the learned listener dominates the hand-crafted ones.
 
-\subsection{The Weight $\lambda$: Dial or Landmine?}
+\subsubsection{The Weight $\lambda$: Dial or Landmine?}
 \label{ssec:results_lambda}
 
-We sweep the communicative weight for both listener families (2 seeds per new point; Fig.~\ref{fig:lambda_ablation}). With the learned listener, $\lambda$ behaves like a dial along an information-performance frontier: $\lambda=0.1$ is free ($\Rext=1.03$, $\Rcomm=-0.13$); $\lambda=0.3$ buys near-saturated clarity ($\Rcomm=-0.05$) for a modest task cost ($\Rext=0.84$); and $\lambda=1.0$ pushes the communicative reward to genuinely \emph{positive} information gain ($\Rcomm=+0.62$)---behavior more informative than task-optimal motion---at a large task cost ($\Rext=-0.80$) as agents privilege signaling over covering landmarks. With the exclusivity listener, no operating point buys information: at $\lambda=0.03$ the reward is simply ignored ($\Rcomm$ stuck at $-2.6$, task performance at baseline level), and at $\lambda=0.1$ it destroys 47\% of task reward with $\Rcomm$ still at $-2.4$. Calibration is precisely what turns $\lambda$ from a landmine into a dial.
+We sweep the communicative weight for both listener families in Environment B (2 seeds per new point; Fig.~\ref{fig:lambda_ablation}). With the learned listener, $\lambda$ behaves like a dial along an information-performance frontier: $\lambda=0.1$ is free ($\Rext=1.03$, $\Rcomm=-0.13$); $\lambda=0.3$ buys near-saturated clarity ($\Rcomm=-0.05$) for a modest task cost ($\Rext=0.84$); and $\lambda=1.0$ pushes the communicative reward to genuinely \emph{positive} information gain ($\Rcomm=+0.62$)---behavior more informative than task-optimal motion---at a large task cost ($\Rext=-0.80$) as agents privilege signaling over covering landmarks. With the exclusivity listener, no operating point buys information: at $\lambda=0.03$ the reward is simply ignored ($\Rcomm$ stuck at $-2.6$, task performance at baseline level), and at $\lambda=0.1$ it destroys 47\% of task reward with $\Rcomm$ still at $-2.4$. Calibration is precisely what turns $\lambda$ from a landmine into a dial.
 
 \begin{figure}[t]
 \centering
@@ -287,15 +352,15 @@ We sweep the communicative weight for both listener families (2 seeds per new po
 \label{fig:lambda_ablation}
 \end{figure}
 
-\subsection{Qualitative Behavior}
+\subsubsection{Qualitative Behavior}
 \label{ssec:results_qualitative}
 
-Figure~\ref{fig:trajectories} shows a representative held-out episode. The baseline reaches landmarks but meanders, with late target switches. The exclusivity-listener agent displays the miscalibration diagnosed above: trajectories sweep across the arena and settle far from any landmark---costly motion signaling nothing. The learned-pragmatic agent produces direct, mutually distinct paths: each agent claims a separate landmark, and the agent whose preferred landmark is taken by a teammate cleanly re-targets the remaining one.
+Figure~\ref{fig:trajectories} shows a representative held-out episode of Environment B. The baseline reaches landmarks but meanders, with late target switches. The exclusivity-listener agent displays the miscalibration diagnosed above: trajectories sweep across the arena and settle far from any landmark---costly motion signaling nothing. The learned-pragmatic agent produces direct, mutually distinct paths: each agent claims a separate landmark, and the agent whose preferred landmark is taken by a teammate cleanly re-targets the remaining one.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{img/trajectories.png}
-\caption{A held-out episode under three conditions. Squares are landmarks (color = category); curves are agent trajectories colored by the agent's \emph{private preference}; circles mark start positions, stars final positions.}
+\caption{A held-out episode under three conditions. Squares are landmarks (color = category); each trajectory is colored by the agent's \emph{private preference} and darkens with time, with a dot every 5 steps, so dense dots mean slow or stationary motion. Open circle = start, star = end.}
 \label{fig:trajectories}
 \end{figure}
 
@@ -334,17 +399,22 @@ Figure~\ref{fig:trajectories} shows a representative held-out episode. The basel
 
 \textbf{Learning the listener closes the loop.} Training $\Ltheta$ on the agents' own replay data guarantees that the common ground never demands what the policy distribution does not contain; the reward then only sharpens distinctions that already exist, which is why it optimizes smoothly and costs no task performance. Proposition~\ref{prop:mi} explains the mechanism: the learned-listener reward is a variational mutual-information bound, so policy improvement against it is information maximization---grounded, by construction, in a decodable channel. And because the bound is calibrated, its weight becomes meaningful: $\lambda$ moves the policy along an actual information-performance frontier (Sec.~\ref{ssec:results_lambda}) instead of scaling an arbitrary shaping term. The RSA recursion contributes during training: it consistently improves the co-adapting listener's accuracy, suggesting that pragmatic contrast (scoring an action against foregone alternatives) accelerates the emergence of decodable behavior, even where asymptotic decodability is capped by the task.
 
-\textbf{When does legibility pay?} The oracle result is a caution for the field: in environments where geometry resolves coordination, intent transmission has little task value to unlock, and a well-calibrated legibility reward should---and in our experiments does---approach a no-op on task reward while still making behavior more decodable. The task-level benefits of legibility should be sought where intentions are both hidden and \emph{consequential}: asymmetric capabilities, longer horizons where early commitment matters, or human partners who cannot run an optimal filter over observed motion. Designing such benchmarks, in which the oracle-baseline gap is provably large, is in our view a prerequisite for meaningful progress on communicative MARL.
+\textbf{Communication is a two-sided market.} Environment A decomposes implicit communication into its two halves and shows that rewarding either alone is insufficient. Speaker-side pragmatic rewards produce a decodable channel---the learned listener reads the scout at $92\%$---but a teammate trained by reward alone never learns to read it; receiver-side listener deployment provides the ear, but hears nothing during the window that matters because the unpressured speaker has nothing to say there. Each side's investment is worthless without the other's, a coordination equilibrium that mirrors the joint-exploration problem of emergent communication \cite{eccles2019biases} and, we suspect, explains why speaker-only legibility methods often show muted task gains.
+
+\textbf{Clarity must be paid when it is needed.} The subsidy framing also exposes a subtler defect in legibility rewards as standardly defined, including ours: they integrate clarity uniformly over time. A rational speaker paid by the average sharpens the parts of its behavior that are cheapest to disambiguate---in our benchmark, the second leg, where motion already reveals the goal---and the channel stays silent exactly where the partner's decisions hang on it. Escalating $\lambda$ purchases more of the same lazy clarity at increasing task cost. The natural correction is to weight $\Rcomm$ by the \emph{partner's value of information}---clarity should be priced by what the listener can still do with it. Our filter listener, which compounds early evidence into every subsequent step's belief, is a hand-crafted step in this direction; a principled treatment would derive the weighting from the partner's counterfactual value function, which we leave to future work.
+%%% DISCUSSION_LAMBDA_SLOT %%%
+
+\textbf{When does legibility pay?} The contrast between environments is a caution for the field: in Environment B, where geometry resolves coordination, even a perfect oracle gains nothing, and a well-calibrated legibility reward correctly approaches a no-op; in Environment A the same machinery faces a certified $0.3$-per-step opportunity. Benchmarks for communicative MARL should report their oracle gap---without it, task reward conflates the cost of signaling with its value. Where the gap is large, our results argue for evaluating methods on three separable axes: calibration of the intrinsic reward, information actually transmitted (probes and deployed listeners), and the task price paid for it.
 
 \subsection{Limitations and Future Work}
 \label{ssec:limitations}
 
-Several limitations qualify our findings and chart future work. First, the intrinsic reward densifies the learning signal, which can aid learning independently of legibility; our probe-based metrics mitigate but do not eliminate this confound. Second, meanings here are hand-specified discrete variables; extending $\Rcomm$ to continuous, hierarchical, or self-assigned meaning spaces---where the agent learns \emph{what} is worth communicating, not only how---remains open. Third, our validation is confined to AI-AI teams in 2D particle environments; whether computational legibility transfers to \emph{human-perceived} legibility must be established with human observers, for instance by fitting $\Ltheta$ to human intent judgments, thereby aligning the intrinsic reward with what people actually find legible. Fourth, CTDE grants the PRM privileged access to private states during training; fully decentralized variants would need agents to estimate each other's meanings. Finally, the framework is symmetric in an intriguing way: inverting the sign of $\lambda$ turns legibility into \emph{obfuscation}, suggesting applications to privacy-preserving and adversarial settings where agents should remain opaque to opponents while staying legible to allies \cite{strouse2018learning}.
+Several limitations qualify our findings and chart future work. First, the intrinsic reward densifies the learning signal, which can aid learning independently of legibility; our commitment-timing and probe metrics mitigate but do not eliminate this confound. Second, our negative receiver-side results are claims about a training budget and architecture (feed-forward policies, 480k steps), not impossibility results; recurrent supporters, longer training, or curricula might crack the joint-exploration equilibrium that our budget did not. Third, meanings are hand-specified discrete variables; extending $\Rcomm$ to continuous, hierarchical, or self-assigned meaning spaces---where the agent learns \emph{what} is worth communicating, not only how---remains open. Fourth, validation is confined to AI-AI teams in 2D particle worlds; whether computational legibility transfers to \emph{human-perceived} legibility must be established with human observers, for instance by fitting $\Ltheta$ to human intent judgments. Finally, the framework is symmetric in an intriguing way: inverting the sign of $\lambda$ turns legibility into \emph{obfuscation}, suggesting privacy-preserving applications where agents remain opaque to opponents while staying legible to allies \cite{strouse2018learning}.
 
 \section{Conclusion}
 \label{sec:conclusion}
 
-We presented a framework that unifies pragmatic inference and maximum-entropy reinforcement learning, importing the RSA listener value as a principled intrinsic reward for legible behavior. The framework isolates the literal listener---the assumed common ground---as the decisive design choice, and our analysis shows that learning this listener jointly with the policy both aligns the reward with what observers can actually decode and recovers information-theoretic approaches to implicit communication as a special case. Empirically, hand-crafted listeners induce costly but undecodable signaling, whereas the learned listener produces calibrated legibility. We view this as a step toward agents whose competence includes being understood---a prerequisite for fluent coordination with artificial and human partners alike.
+We presented a framework that unifies pragmatic inference and maximum-entropy reinforcement learning, importing the RSA listener value as a principled intrinsic reward for legible behavior, with the literal listener---the assumed common ground---as its decisive design choice; learning that listener jointly with the policy aligns the reward with what observers can actually decode and recovers information-theoretic approaches as a special case. Our two-environment study then locates the real obstacles. Where communication has no task value, miscalibrated hand-crafted listeners charge for undecodable signaling while calibrated ones correctly approach a no-op. Where communication is certifiably valuable, speaker-side rewards make behavior decodable but cannot make a teammate listen; deploying the learned listener as the teammate's ear recovers part of the oracle gap; and what remains is a two-sided equilibrium sustained by uniformly-integrated clarity rewards that pay for clarity where it is cheap rather than when it is needed. The path forward for pragmatic agents, we argue, runs through value-weighted clarity and joint speaker-listener training---toward agents whose competence includes being understood, exactly when being understood matters.
 
 \vfill\pagebreak
 
@@ -371,6 +441,9 @@ $\lambda$ (pragmatic weight) & 0.1 \\
 Listener $\Ltheta$ & MLP $128\times128$, lr $10^{-3}$ \\
 Heuristic listener temp.\ $\alpha_{\text{temp}}$ / $K$ / $N_r$ & 5 / 64 / 1 \\
 Learned+RSA alternatives / $N_r$ & 16 / 1 \\
+Filter listener temp.\ / forgetting $\rho$ & 2 / 0.9 \\
+Scout / supporter max speed (Env.\ A) & 1.0 / 0.6 \\
+Rendezvous bonus / cover radius (Env.\ A) & 3.0 / 0.3 \\
 Seeds per condition & 3 \\
 \bottomrule
 \end{tabular}

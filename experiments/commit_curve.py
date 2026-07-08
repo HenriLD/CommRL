@@ -21,7 +21,9 @@ import matplotlib.pyplot as plt
 
 import scout_support as S
 from train_masac import Actor
-from plots_scout import LABELS, COLORS, ORDER
+from train_scout import inject_ear
+from paperstyle import use_style, LABELS, COLORS, REF_STYLE
+from plots_scout import ORDER
 
 
 def commit_curve(run_dir, n_envs=256, seed=777):
@@ -29,15 +31,29 @@ def commit_curve(run_dir, n_envs=256, seed=777):
                       weights_only=True)
     actor = Actor(obs_dim=S.OBS_DIM, act_dim=S.ACT_DIM)
     actor.load_state_dict(ckpt["actor"])
-    env = S.ScoutSupportEnv(n_envs, oracle=("oracle" in os.path.basename(run_dir)),
-                            seed=seed)
+    name = os.path.basename(run_dir)
+    listener = None
+    ear = ("ear" in name.replace("learned", "")) or name.startswith("ear")
+    if ear and ckpt.get("listener") is not None:
+        listener = S.ScoutListener()
+        listener.load_state_dict(ckpt["listener"])
+    env = S.ScoutSupportEnv(n_envs, oracle=name.startswith("oracle"), seed=seed)
     obs = env.reset()
+    if ear:
+        obs = inject_ear(obs, torch.full((n_envs, S.N_MEANINGS), 1 / 3))
     acc = []
     with torch.no_grad():
         for t in range(S.EPISODE_LEN):
             a, _ = actor.sample(obs, deterministic=True)
-            obs, info, _ = env.step(a)
+            next_obs, info, _ = env.step(a)
             acc.append(info["commit_acc"].mean().item())
+            if ear:
+                if listener is not None:
+                    post = torch.softmax(listener(obs[:, 0], a[:, 0]), dim=-1)
+                else:
+                    post = env.log_belief.exp()
+                next_obs = inject_ear(next_obs, post)
+            obs = next_obs
     return np.array(acc)
 
 
@@ -58,23 +74,29 @@ def main():
         curves[cond].append(commit_curve(run))
         print("rolled out", os.path.basename(run), flush=True)
 
-    plt.figure(figsize=(5.2, 3.4))
+    use_style()
+    fig, ax = plt.subplots(figsize=(5.0, 3.2))
     for cond in ORDER:
         if cond not in curves:
             continue
         c = np.stack(curves[cond])
         m, e = c.mean(0), c.std(0) / np.sqrt(c.shape[0])
         t = np.arange(1, len(m) + 1)
-        plt.plot(t, m, label=LABELS[cond], color=COLORS[cond], lw=1.8)
-        plt.fill_between(t, m - e, m + e, color=COLORS[cond], alpha=0.15, lw=0)
-    plt.axhline(1 / 3, color="k", lw=0.8, ls=":", alpha=0.6)
-    plt.xlabel("Episode timestep")
-    plt.ylabel("Supporter commitment accuracy")
-    plt.legend(fontsize=7, frameon=False, ncol=2, loc="lower right")
-    plt.grid(alpha=0.25, lw=0.5)
-    plt.tight_layout()
+        if cond in REF_STYLE:
+            ax.plot(t, m, label=LABELS[cond], **REF_STYLE[cond])
+            ax.fill_between(t, m - e, m + e, color=REF_STYLE[cond]["color"],
+                            alpha=0.10, lw=0)
+        else:
+            ax.plot(t, m, label=LABELS[cond], color=COLORS[cond], lw=2.0)
+            ax.fill_between(t, m - e, m + e, color=COLORS[cond], alpha=0.15, lw=0)
+    ax.axhline(1 / 3, color="k", lw=0.7, ls=":", alpha=0.5)
+    ax.text(49, 1 / 3 + 0.012, "chance", fontsize=7.5, color="#555555", ha="right")
+    ax.set_xlabel("Episode timestep")
+    ax.set_ylabel("Supporter commitment accuracy")
+    ax.legend(frameon=False, ncol=2, loc="lower right")
+    fig.tight_layout()
     os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
-    plt.savefig(args.out, dpi=200)
+    fig.savefig(args.out)
     print("wrote", args.out)
 
     summary = {c: {"auc": float(np.stack(v).mean()),

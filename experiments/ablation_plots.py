@@ -48,27 +48,28 @@ def main():
     }
     base_m, base_e = final(f"{R}/baseline_s*/history.json", "r_ext")
 
-    plt.figure(figsize=(4.6, 3.2))
+    from paperstyle import use_style
+    use_style()
+    fig, ax = plt.subplots(figsize=(4.6, 3.0))
     for d, label, color, marker in [
-        (learned, "Learned listener", "#1f77b4", "o"),
-        (heuristic, "Exclusivity $L_0$", "#d62728", "s"),
+        (learned, "Learned listener", "#0072B2", "o"),
+        (heuristic, "Exclusivity $L_0$", "#D55E00", "s"),
     ]:
         lams = sorted(d)
         m = np.array([d[l][0] for l in lams])
         e = np.array([d[l][1] for l in lams])
-        plt.errorbar(lams, m, yerr=e, label=label, color=color,
-                     marker=marker, ms=5, lw=1.6, capsize=3)
-    plt.axhline(base_m, color="#888888", lw=1.4, ls="--",
-                label="Baseline ($\\lambda=0$)")
-    plt.axhspan(base_m - base_e, base_m + base_e, color="#888888", alpha=0.15, lw=0)
-    plt.xscale("log")
-    plt.xlabel("Communicative weight $\\lambda$")
-    plt.ylabel("Final task reward $R_{ext}$")
-    plt.legend(fontsize=8, frameon=False)
-    plt.grid(alpha=0.25, lw=0.5)
-    plt.tight_layout()
+        ax.errorbar(lams, m, yerr=e, label=label, color=color,
+                    marker=marker, ms=5, lw=2.0, capsize=3)
+    ax.axhline(base_m, color="#666666", lw=1.8, ls="--",
+               label="Baseline ($\\lambda=0$)")
+    ax.axhspan(base_m - base_e, base_m + base_e, color="#666666", alpha=0.12, lw=0)
+    ax.set_xscale("log")
+    ax.set_xlabel("Communicative weight $\\lambda$")
+    ax.set_ylabel("Final task reward $R_{ext}$")
+    ax.legend(frameon=False)
+    fig.tight_layout()
     out = os.path.join(args.figdir, "lambda_ablation.png")
-    plt.savefig(out, dpi=200)
+    fig.savefig(out)
     print("wrote", out)
     print("learned:", {k: (round(v[0], 3), round(v[1], 3)) for k, v in learned.items()})
     print("heuristic:", {k: (round(v[0], 3), round(v[1], 3)) for k, v in heuristic.items()})

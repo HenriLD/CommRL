@@ -14,22 +14,8 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-LABELS = {
-    "baseline": "MASAC baseline",
-    "oracle": "Oracle (shared intentions)",
-    "heuristic": "PRM: exclusivity $L_0$",
-    "simple": "PRM: simple $L_0$",
-    "learned": "PRM: learned listener",
-    "learned_prag": "PRM: learned + RSA",
-}
-COLORS = {
-    "baseline": "#888888",
-    "oracle": "#111111",
-    "heuristic": "#d62728",
-    "simple": "#ff9f4a",
-    "learned": "#1f77b4",
-    "learned_prag": "#2ca02c",
-}
+from paperstyle import use_style, plot_series, LABELS, COLORS
+
 ORDER = ["baseline", "oracle", "heuristic", "simple", "learned", "learned_prag"]
 
 
@@ -52,20 +38,19 @@ def series(histories, key):
 
 
 def curve_plot(data, key, ylabel, fname, figdir, conds=None):
-    plt.figure(figsize=(5.2, 3.4))
+    use_style()
+    fig, ax = plt.subplots(figsize=(5.0, 3.2))
     for cond in (conds or ORDER):
         if cond not in data:
             continue
         s, m, e = series(data[cond], key)
-        plt.plot(s / 1e3, m, label=LABELS[cond], color=COLORS[cond], lw=1.8)
-        plt.fill_between(s / 1e3, m - e, m + e, color=COLORS[cond], alpha=0.18, lw=0)
-    plt.xlabel("Environment steps (thousands)")
-    plt.ylabel(ylabel)
-    plt.legend(fontsize=7.5, frameon=False)
-    plt.grid(alpha=0.25, lw=0.5)
-    plt.tight_layout()
-    plt.savefig(os.path.join(figdir, fname), dpi=200)
-    plt.close()
+        plot_series(ax, s / 1e3, m, e, cond)
+    ax.set_xlabel("Environment steps (thousands)")
+    ax.set_ylabel(ylabel)
+    ax.legend(frameon=False)
+    fig.tight_layout()
+    fig.savefig(os.path.join(figdir, fname))
+    plt.close(fig)
     print("wrote", fname)
 
 
