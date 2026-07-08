@@ -36,14 +36,16 @@ SUPPORT_SPEED = 0.6
 SITE_RADIUS = 1.0
 SITE_JITTER = 0.1
 COVER_RADIUS = 0.3
-KEY_RADIUS = 0.2
+KEY_RADIUS = 0.3
 BONUS = 3.0
 EPISODE_LEN = 50
+HIST_LEN = 6              # steps of scout motion history in observations
 
 # The scout must first visit a pickup waypoint near the center before its
 # presence at the target counts. Its first-leg motion is therefore
 # task-uninformative about the target: any information the supporter gets
-# early must be actively signaled.
+# early must be actively signaled. The scout starts on an outer annulus so
+# this ambiguous first leg is long enough for signaling to matter.
 
 # observation layout per agent:
 #   own pos (2) | own vel (2) | role one-hot (2)
@@ -51,9 +53,11 @@ EPISODE_LEN = 50
 #   site rel pos (3*2) | waypoint rel pos (2) | has-key flag (1)
 #   partner rel pos (2) | partner vel (2)
 #   partner meaning one-hot (3; zeros unless oracle supporter)
-OBS_DIM = 2 + 2 + 2 + 3 + 6 + 2 + 1 + 2 + 2 + 3  # = 25
+#   scout motion history (HIST_LEN * (vel 2 + action 2); public, same for both)
+OBS_DIM = 2 + 2 + 2 + 3 + 6 + 2 + 1 + 2 + 2 + 3 + HIST_LEN * 4  # = 49
 ACT_DIM = 2
 PREF_SLICE = slice(6, 9)      # own meaning block (masked in learned listener)
+KEY_INDEX = 17                # has-key flag within the observation
 PARTNER_PREF_SLICE = slice(22, 25)
 
 
@@ -75,14 +79,18 @@ class ScoutSupportEnv:
         radius = SITE_RADIUS + (torch.rand((E, N_SITES), generator=self.gen) * 2 - 1) * SITE_JITTER
         self.sites = torch.stack([radius * torch.cos(angles),
                                   radius * torch.sin(angles)], dim=-1).to(self.device)
-        # pickup waypoint near the center; scout starts away from it
+        # pickup waypoint near the center; scout starts on an outer annulus so
+        # the ambiguous first leg is long
         self.waypoint = ((torch.rand((E, 2), generator=self.gen) * 2 - 1) * 0.25).to(self.device)
-        scout_pos = (torch.rand((E, 2), generator=self.gen) * 2 - 1)
+        ang = torch.rand((E,), generator=self.gen) * 2 * math.pi
+        rad = 0.9 + torch.rand((E,), generator=self.gen) * 0.4
+        scout_pos = torch.stack([rad * torch.cos(ang), rad * torch.sin(ang)], dim=-1)
         sup_pos = (torch.rand((E, 2), generator=self.gen) * 2 - 1)
         self.pos = torch.stack([scout_pos, sup_pos], dim=1).to(self.device)
         self.vel = torch.zeros((E, N_AGENTS, 2), device=self.device)
         self.has_key = torch.zeros(E, device=self.device)
         self.target = torch.randint(0, N_SITES, (E,), generator=self.gen).to(self.device)
+        self.hist = torch.zeros((E, HIST_LEN, 4), device=self.device)
         # belief state for the filter listener
         self.log_belief = torch.full((E, N_MEANINGS), -math.log(N_MEANINGS),
                                      device=self.device)
@@ -112,13 +120,20 @@ class ScoutSupportEnv:
             partner_rel = self.pos[:, j] - own_pos
             partner_vel = self.vel[:, j]
             partner_m = m_oh if (i == 1 and self.oracle) else zeros3
+            hist = self.hist.reshape(E, -1)
             obs.append(torch.cat([own_pos, own_vel, role, own_m, site_rel,
                                   wp_rel, key, partner_rel, partner_vel,
-                                  partner_m], dim=1))
+                                  partner_m, hist], dim=1))
         return torch.stack(obs, dim=1)  # (E, N, OBS_DIM)
 
     def step(self, actions):
         actions = actions.clamp(-1, 1)
+        # roll the scout motion-history window (velocity before this step,
+        # action taken this step)
+        self.hist = torch.cat([
+            self.hist[:, 1:],
+            torch.cat([self.vel[:, 0], actions[:, 0]], dim=-1).unsqueeze(1),
+        ], dim=1)
         self.vel = self.vel * (1 - DAMPING) + actions * ACCEL * DT
         speed = self.vel.norm(dim=-1, keepdim=True).clamp(min=1e-8)
         max_speed = torch.tensor([SCOUT_SPEED, SUPPORT_SPEED],

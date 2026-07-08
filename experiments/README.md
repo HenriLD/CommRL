@@ -1,10 +1,24 @@
 # Pragmatic Reward Experiments
 
-Self-contained PyTorch implementation of the *preference Simple Spread* task and
-the pragmatic-reward conditions compared in `papers/Conference_Paper/main.tex`.
-No VMAS/BenchMARL dependency — everything is vectorized over environments in torch.
+Self-contained PyTorch implementations of the two environments compared in
+`papers/Conference_Paper/main.tex`: *scout-support* (Environment A, structural
+oracle gap — communication has task value) and *preference Simple Spread*
+(Environment B, near-zero oracle gap — control). No VMAS/BenchMARL dependency —
+everything is vectorized over environments in torch.
 
-## Files
+## Environment A (primary)
+
+- `scout_support.py` — env (scout knows the target site, must visit a pickup
+  waypoint first; slower supporter must co-locate at the target) and listeners:
+  simple / exclusivity / progress / Bayesian filter / learned.
+- `train_scout.py` — MASAC with conditions `baseline | oracle | simple |
+  exclusivity | progress | filter | learned | learned_prag | ear | learned_ear`.
+  The `ear` conditions feed the co-trained listener's posterior into the
+  supporter's observations (decentralized-executable).
+- `plots_scout.py`, `commit_curve.py`, `render_scout.py` — figures, including
+  time-resolved supporter commitment accuracy.
+
+## Environment B (control)
 
 - `pragmatic_spread.py` — environment (3 agents, 3 colored landmarks, private
   color preferences; preference bonus / distance penalty / collision penalty)
@@ -24,6 +38,12 @@ No VMAS/BenchMARL dependency — everything is vectorized over environments in t
 
 ```
 conda activate commrl-working
+# Environment A
+python launch.py --script train_scout.py --outroot results_scout --seeds 0 1 2 --cycles 150 --workers 4 \
+    --conditions baseline oracle simple exclusivity progress filter learned learned_prag ear learned_ear
+python plots_scout.py --resroot results_scout --figdir ../papers/Conference_Paper/img
+python commit_curve.py --resroot results_scout --out ../papers/Conference_Paper/img/scout_commit_curve.png
+# Environment B
 python launch.py --outroot results --seeds 0 1 2 --cycles 150 --workers 4
 python plots.py --resroot results --figdir ../papers/Conference_Paper/img
 ```

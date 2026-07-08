@@ -23,6 +23,8 @@ LABELS = {
     "filter": "PRM: filter $L_0$",
     "learned": "PRM: learned listener",
     "learned_prag": "PRM: learned + RSA",
+    "ear": "Listener-augmented (ear)",
+    "learned_ear": "Ear + pragmatic reward",
 }
 COLORS = {
     "baseline": "#888888",
@@ -33,9 +35,11 @@ COLORS = {
     "filter": "#8c564b",
     "learned": "#1f77b4",
     "learned_prag": "#2ca02c",
+    "ear": "#e377c2",
+    "learned_ear": "#17becf",
 }
 ORDER = ["baseline", "oracle", "simple", "exclusivity", "progress", "filter",
-         "learned", "learned_prag"]
+         "learned", "learned_prag", "ear", "learned_ear"]
 
 
 def load(resroot):

@@ -38,7 +38,7 @@ def inject_ear(obs, posterior):
 def evaluate(actor, cond, listener, seed, n_envs=64):
     env = S.ScoutSupportEnv(n_envs, oracle=(cond == "oracle"), seed=seed)
     obs = env.reset()
-    ear = cond in ("ear", "learned_ear")
+    ear = cond in ("ear", "learned_ear", "filter_ear")
     if ear:
         obs = inject_ear(obs, torch.full((n_envs, S.N_MEANINGS), 1 / 3))
     gen = torch.Generator().manual_seed(seed)
@@ -57,8 +57,9 @@ def evaluate(actor, cond, listener, seed, n_envs=64):
             acc, ce = S.probe_intent_metrics(dirs, target, a)
             tot["probe_acc"] += acc.mean().item()
             tot["probe_ce"] += ce.mean().item()
-            if cond in HANDCRAFTED:
-                rc = S.scout_comm_reward(env, a, cond, gen=gen, pre_pos=pre_pos)
+            if cond in HANDCRAFTED or cond == "filter_ear":
+                kind = "filter" if cond == "filter_ear" else cond
+                rc = S.scout_comm_reward(env, a, kind, gen=gen, pre_pos=pre_pos)
                 tot["comm_rw"] += rc.mean().item()
             elif listener is not None:
                 rc = listener.comm_reward(obs[:, 0], a[:, 0], target)
@@ -66,7 +67,10 @@ def evaluate(actor, cond, listener, seed, n_envs=64):
                 pred = listener(obs[:, 0], a[:, 0]).argmax(-1)
                 tot["listener_acc"] += (pred == target).float().mean().item()
             if ear:
-                post = F.softmax(listener(obs[:, 0], a[:, 0]), dim=-1)
+                if cond == "filter_ear":
+                    post = env.log_belief.exp()
+                else:
+                    post = F.softmax(listener(obs[:, 0], a[:, 0]), dim=-1)
                 next_obs = inject_ear(next_obs, post)
             obs = next_obs
             steps += 1
@@ -78,7 +82,7 @@ def main():
     p.add_argument("--condition", required=True,
                    choices=["baseline", "oracle", "simple", "exclusivity",
                             "progress", "filter", "learned", "learned_prag",
-                            "ear", "learned_ear"])
+                            "ear", "learned_ear", "filter_ear"])
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--lam", type=float, default=0.1)
     p.add_argument("--cycles", type=int, default=150)
@@ -90,6 +94,9 @@ def main():
     p.add_argument("--tau", type=float, default=0.005)
     p.add_argument("--outdir", required=True)
     p.add_argument("--threads", type=int, default=4)
+    p.add_argument("--voi", type=float, default=1.0,
+                   help="post-key weight on R_comm (pre-key weight is 1); "
+                        "<1 concentrates the subsidy where information matters")
     args = p.parse_args()
 
     torch.set_num_threads(args.threads)
@@ -99,7 +106,7 @@ def main():
 
     lam = 0.0 if args.condition in ("baseline", "oracle", "ear") else args.lam
     use_listener = args.condition in ("learned", "learned_prag", "ear", "learned_ear")
-    ear = args.condition in ("ear", "learned_ear")
+    ear = args.condition in ("ear", "learned_ear", "filter_ear")
 
     env = S.ScoutSupportEnv(args.n_envs, oracle=(args.condition == "oracle"),
                             seed=args.seed)
@@ -136,17 +143,22 @@ def main():
                 else:
                     a, _ = actor.sample(obs)
             pre_pos = env.pos[:, 0].clone()
+            pre_key = 1.0 - env.has_key.clone()
             target = env.target
             next_obs, info, done = env.step(a)
 
             r_comm = torch.zeros((args.n_envs, S.N_AGENTS))
-            if args.condition in HANDCRAFTED:
+            if args.condition in HANDCRAFTED or args.condition == "filter_ear":
+                kind = "filter" if args.condition == "filter_ear" else args.condition
                 with torch.no_grad():
-                    r_comm[:, 0] = S.scout_comm_reward(env, a, args.condition,
-                                                       gen=gen, pre_pos=pre_pos)
+                    rc = S.scout_comm_reward(env, a, kind, gen=gen, pre_pos=pre_pos)
+                    r_comm[:, 0] = rc * (args.voi + (1 - args.voi) * pre_key)
             if ear:
                 with torch.no_grad():
-                    post = F.softmax(listener(obs[:, 0], a[:, 0]), dim=-1)
+                    if args.condition == "filter_ear":
+                        post = env.log_belief.exp()
+                    else:
+                        post = F.softmax(listener(obs[:, 0], a[:, 0]), dim=-1)
                 next_obs = inject_ear(next_obs, post)
 
             buf.push(obs, a, info["r_ext"], r_comm, next_obs,
@@ -174,6 +186,8 @@ def main():
                             else:
                                 rc = listener.comm_reward(b_obs[:, 0], b_act[:, 0],
                                                           b_target)
+                            b_pre_key = 1.0 - b_obs[:, 0, S.KEY_INDEX]
+                            rc = rc * (args.voi + (1 - args.voi) * b_pre_key)
                             b_rcomm = torch.zeros_like(b_rcomm)
                             b_rcomm[:, 0] = rc
 
