@@ -111,10 +111,11 @@ def main():
                         color=REF_STYLE.get(cond, {}).get("color", COLORS.get(cond)),
                         alpha=0.13, lw=0)
     ax.axhline(1 / 3, color="k", lw=0.7, ls=":", alpha=0.5)
-    ax.text(49, 1 / 3 + 0.012, "chance", fontsize=7.5, color="#555555", ha="right")
+    ax.text(2, 1 / 3 + 0.012, "chance", fontsize=7.5, color="#555555")
     ax.set_xlabel("Episode timestep")
     ax.set_ylabel("Post-hoc probe decode accuracy")
-    ax.legend(frameon=False, loc="lower right")
+    ax.set_xlim(0, 26)
+    ax.legend(frameon=False, loc="center right")
     fig.tight_layout()
     os.makedirs(args.figdir, exist_ok=True)
     out = os.path.join(args.figdir, "info_profile.png")
