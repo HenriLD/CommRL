@@ -20,13 +20,13 @@ def mlp(i, h, o):
                          nn.Linear(h, o))
 
 
-def bench(device, batch, iters=200, threads=4):
+def bench(device, batch, iters=200, threads=4, hidden=256):
     torch.set_num_threads(threads)
     dev = torch.device(device)
-    critic1 = mlp(N_AGENTS * (OBS_DIM + ACT_DIM), 256, 1).to(dev)
-    critic2 = mlp(N_AGENTS * (OBS_DIM + ACT_DIM), 256, 1).to(dev)
-    actor = mlp(OBS_DIM, 256, 2 * ACT_DIM).to(dev)
-    listener = mlp(OBS_DIM + ACT_DIM, 128, 3).to(dev)
+    critic1 = mlp(N_AGENTS * (OBS_DIM + ACT_DIM), hidden, 1).to(dev)
+    critic2 = mlp(N_AGENTS * (OBS_DIM + ACT_DIM), hidden, 1).to(dev)
+    actor = mlp(OBS_DIM, hidden, 2 * ACT_DIM).to(dev)
+    listener = mlp(OBS_DIM + ACT_DIM, hidden // 2, 3).to(dev)
     opt = torch.optim.Adam([*critic1.parameters(), *critic2.parameters(),
                             *actor.parameters(), *listener.parameters()], lr=3e-4)
     x_joint = torch.randn(batch, N_AGENTS * (OBS_DIM + ACT_DIM), device=dev)
@@ -62,9 +62,11 @@ if __name__ == "__main__":
                    help="single batch size (for concurrency tests)")
     p.add_argument("--iters", type=int, default=200)
     p.add_argument("--threads", type=int, default=4)
+    p.add_argument("--hidden", type=int, default=256)
     args = p.parse_args()
     if args.batch:
-        ups = bench(args.device, args.batch, iters=args.iters, threads=args.threads)
+        ups = bench(args.device, args.batch, iters=args.iters,
+                    threads=args.threads, hidden=args.hidden)
         print(f"{ups:.1f}")
     else:
         if args.device == "cuda":

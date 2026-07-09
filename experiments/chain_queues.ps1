@@ -22,7 +22,7 @@ foreach ($pt in @(@("0.1", "0.2"), @("0.6", "0.2"), @("1.0", "0.2"), @("0.3", "0
     Start-Process -FilePath $gpu -ArgumentList "$exp\launch.py", "--script", "train_scout.py", `
         "--outroot", $out, "--conditions", "learned_ear", "--seeds", "0", "1", "2", `
         "--cycles", "400", "--lam", $pt[0], "--voi", $pt[1], "--device", "cuda", `
-        "--threads", "1", "--workers", "1" -WindowStyle Hidden
+        "--threads", "2", "--workers", "1" -WindowStyle Hidden
 }
 "grid launched" | Out-File "$exp\chain_status.txt"
 
@@ -38,5 +38,5 @@ while ($true) {
 Start-Process -FilePath $gpu -ArgumentList "$exp\launch.py", "--script", "train_scout.py", `
     "--outroot", "$exp\results_scout3", "--conditions", "baseline", "oracle", "learned", "learned_ear", `
     "--seeds", "6", "7", "8", "9", "--cycles", "400", "--lam", "0.3", "--voi", "0.2", `
-    "--device", "cuda", "--threads", "1", "--workers", "5" -WindowStyle Hidden
+    "--device", "cuda", "--threads", "2", "--workers", "3" -WindowStyle Hidden
 "grid + extra seeds launched" | Out-File "$exp\chain_status.txt"

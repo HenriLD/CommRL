@@ -25,6 +25,7 @@ def main():
     p.add_argument("--voi", type=float, default=None)
     p.add_argument("--device", default=None)
     p.add_argument("--threads", type=int, default=None)
+    p.add_argument("--hidden", type=int, default=None)
     args = p.parse_args()
 
     here = os.path.dirname(os.path.abspath(__file__))
@@ -53,6 +54,8 @@ def main():
                 cmd += ["--device", args.device]
             if args.threads is not None:
                 cmd += ["--threads", str(args.threads)]
+            if args.hidden is not None:
+                cmd += ["--hidden", str(args.hidden)]
             proc = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT)
             running.append((proc, f"{cond}_s{seed}"))
             print(f"launched {cond} s{seed} (pid {proc.pid}); "

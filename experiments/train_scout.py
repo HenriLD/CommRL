@@ -101,6 +101,7 @@ def main():
                    help="post-key weight on R_comm (pre-key weight is 1); "
                         "<1 concentrates the subsidy where information matters")
     p.add_argument("--device", default="cpu")
+    p.add_argument("--hidden", type=int, default=256)
     args = p.parse_args()
 
     torch.set_num_threads(args.threads)
@@ -115,10 +116,10 @@ def main():
 
     env = S.ScoutSupportEnv(args.n_envs, oracle=(args.condition == "oracle"),
                             seed=args.seed)
-    actor = Actor(obs_dim=S.OBS_DIM, act_dim=S.ACT_DIM).to(device)
-    critic = CentralCritic(n_agents=S.N_AGENTS, obs_dim=S.OBS_DIM,
+    actor = Actor(hidden=args.hidden, obs_dim=S.OBS_DIM, act_dim=S.ACT_DIM).to(device)
+    critic = CentralCritic(hidden=args.hidden, n_agents=S.N_AGENTS, obs_dim=S.OBS_DIM,
                            act_dim=S.ACT_DIM).to(device)
-    critic_t = CentralCritic(n_agents=S.N_AGENTS, obs_dim=S.OBS_DIM,
+    critic_t = CentralCritic(hidden=args.hidden, n_agents=S.N_AGENTS, obs_dim=S.OBS_DIM,
                              act_dim=S.ACT_DIM).to(device)
     critic_t.load_state_dict(critic.state_dict())
     opt_a = torch.optim.Adam(actor.parameters(), lr=args.lr)
