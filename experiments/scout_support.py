@@ -47,25 +47,41 @@ HIST_LEN = 6              # steps of scout motion history in observations
 # early must be actively signaled. The scout starts on an outer annulus so
 # this ambiguous first leg is long enough for signaling to matter.
 
-# observation layout per agent:
+# observation layout per agent (K = N_SITES):
 #   own pos (2) | own vel (2) | role one-hot (2)
-#   own meaning one-hot (3; zeros for supporter)
-#   site rel pos (3*2) | waypoint rel pos (2) | has-key flag (1)
+#   own meaning one-hot (K; zeros for supporter)
+#   site rel pos (2K) | waypoint rel pos (2) | has-key flag (1)
 #   partner rel pos (2) | partner vel (2)
-#   partner meaning one-hot (3; zeros unless oracle supporter)
+#   partner meaning one-hot (K; zeros unless oracle supporter)
 #   scout motion history (HIST_LEN * (vel 2 + action 2); public, same for both)
-OBS_DIM = 2 + 2 + 2 + 3 + 6 + 2 + 1 + 2 + 2 + 3 + HIST_LEN * 4  # = 49
 ACT_DIM = 2
-PREF_SLICE = slice(6, 9)      # own meaning block (masked in learned listener)
-KEY_INDEX = 17                # has-key flag within the observation
-PARTNER_PREF_SLICE = slice(22, 25)
+MINEFIELD = False
+MINE_PENALTY = 1.5
+
+
+def configure(n_sites=3, minefield=False):
+    """Set the environment family: meaning-space size and reward variant.
+    Must be called before constructing envs, listeners, or policies."""
+    global N_SITES, N_MEANINGS, MINEFIELD, OBS_DIM, PREF_SLICE, KEY_INDEX, \
+        PARTNER_PREF_SLICE
+    N_SITES = N_MEANINGS = n_sites
+    MINEFIELD = minefield
+    K = n_sites
+    OBS_DIM = 37 + 4 * K
+    PREF_SLICE = slice(6, 6 + K)
+    KEY_INDEX = 8 + 3 * K
+    PARTNER_PREF_SLICE = slice(13 + 3 * K, 13 + 4 * K)
+
+
+configure(3, False)
 
 
 class ScoutSupportEnv:
-    def __init__(self, n_envs, device="cpu", oracle=False, seed=0):
+    def __init__(self, n_envs, device="cpu", oracle=False, seed=0, blind=False):
         self.n_envs = n_envs
         self.device = torch.device(device)
         self.oracle = oracle
+        self.blind = blind    # supporter cannot observe the scout (control)
         self.gen = torch.Generator(device="cpu").manual_seed(seed)
         self.t = 0
         self.reset()
@@ -75,7 +91,7 @@ class ScoutSupportEnv:
         self.t = 0
         # sites on a circle with random rotation and radial jitter
         theta = torch.rand((E, 1), generator=self.gen) * 2 * math.pi
-        angles = theta + torch.tensor([0.0, 2 * math.pi / 3, 4 * math.pi / 3]).view(1, 3)
+        angles = theta + (2 * math.pi / N_SITES) * torch.arange(N_SITES).view(1, N_SITES)
         radius = SITE_RADIUS + (torch.rand((E, N_SITES), generator=self.gen) * 2 - 1) * SITE_JITTER
         self.sites = torch.stack([radius * torch.cos(angles),
                                   radius * torch.sin(angles)], dim=-1).to(self.device)
@@ -121,6 +137,11 @@ class ScoutSupportEnv:
             partner_vel = self.vel[:, j]
             partner_m = m_oh if (i == 1 and self.oracle) else zeros3
             hist = self.hist.reshape(E, -1)
+            if i == 1 and self.blind:
+                # control condition: sever the visual channel to the scout
+                partner_rel = torch.zeros_like(partner_rel)
+                partner_vel = torch.zeros_like(partner_vel)
+                hist = torch.zeros_like(hist)
             obs.append(torch.cat([own_pos, own_vel, role, own_m, site_rel,
                                   wp_rel, key, partner_rel, partner_vel,
                                   partner_m, hist], dim=1))
@@ -154,6 +175,13 @@ class ScoutSupportEnv:
         # scout shaping: reach the waypoint first, then the target
         scout_shape = torch.where(self.has_key > 0, d_scout, d_wp + 1.0)
         r_ext = BONUS * both_in.float() - scout_shape - d_sup
+        if MINEFIELD:
+            # entering any non-target site is penalized: wrong commitment is
+            # costly, not merely slow
+            d_all = (self.pos[:, 1].unsqueeze(1) - self.sites).norm(dim=-1)  # (E,K)
+            inside = (d_all < COVER_RADIUS).float()
+            inside.scatter_(1, self.target.unsqueeze(1), 0.0)
+            r_ext = r_ext - MINE_PENALTY * inside.sum(dim=1)
 
         done = self.t >= EPISODE_LEN
         info = {

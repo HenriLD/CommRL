@@ -35,8 +35,9 @@ def inject_ear(obs, posterior):
     return obs
 
 
-def evaluate(actor, cond, listener, seed, n_envs=64, device=torch.device("cpu")):
-    env = S.ScoutSupportEnv(n_envs, oracle=(cond == "oracle"), seed=seed)
+def evaluate(actor, cond, listener, seed, n_envs=64, device=torch.device("cpu"),
+             blind=False):
+    env = S.ScoutSupportEnv(n_envs, oracle=(cond == "oracle"), seed=seed, blind=blind)
     obs = env.reset()
     ear = cond in ("ear", "learned_ear", "filter_ear")
     if ear:
@@ -102,7 +103,12 @@ def main():
                         "<1 concentrates the subsidy where information matters")
     p.add_argument("--device", default="cpu")
     p.add_argument("--hidden", type=int, default=256)
+    p.add_argument("--n_sites", type=int, default=3)
+    p.add_argument("--minefield", action="store_true")
+    p.add_argument("--blind", action="store_true",
+                   help="control: supporter cannot observe the scout")
     args = p.parse_args()
+    S.configure(args.n_sites, args.minefield)
 
     torch.set_num_threads(args.threads)
     torch.manual_seed(args.seed)
@@ -115,7 +121,7 @@ def main():
     ear = args.condition in ("ear", "learned_ear", "filter_ear")
 
     env = S.ScoutSupportEnv(args.n_envs, oracle=(args.condition == "oracle"),
-                            seed=args.seed)
+                            seed=args.seed, blind=args.blind)
     actor = Actor(hidden=args.hidden, obs_dim=S.OBS_DIM, act_dim=S.ACT_DIM).to(device)
     critic = CentralCritic(hidden=args.hidden, n_agents=S.N_AGENTS, obs_dim=S.OBS_DIM,
                            act_dim=S.ACT_DIM).to(device)
@@ -232,7 +238,8 @@ def main():
                         pt.mul_(1 - args.tau).add_(args.tau * ps)
 
         if (cycle + 1) % 10 == 0 or cycle == args.cycles - 1:
-            m = evaluate(actor, args.condition, listener, seed=12345, device=device)
+            m = evaluate(actor, args.condition, listener, seed=12345, device=device,
+                         blind=args.blind)
             m.update(cycle=cycle + 1, steps=total_steps,
                      wall_min=round((time.time() - t0) / 60, 1))
             history.append(m)

@@ -1,0 +1,566 @@
+[
+{
+"name": "k5_baseline_s0",
+"args": [
+"--condition",
+"baseline",
+"--seed",
+"0",
+"--n_sites",
+"5",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "k5_baseline_s1",
+"args": [
+"--condition",
+"baseline",
+"--seed",
+"1",
+"--n_sites",
+"5",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "k5_oracle_s0",
+"args": [
+"--condition",
+"oracle",
+"--seed",
+"0",
+"--n_sites",
+"5",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "k5_oracle_s1",
+"args": [
+"--condition",
+"oracle",
+"--seed",
+"1",
+"--n_sites",
+"5",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "mine_baseline_s0",
+"args": [
+"--condition",
+"baseline",
+"--seed",
+"0",
+"--minefield",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "mine_baseline_s1",
+"args": [
+"--condition",
+"baseline",
+"--seed",
+"1",
+"--minefield",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "mine_oracle_s0",
+"args": [
+"--condition",
+"oracle",
+"--seed",
+"0",
+"--minefield",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "mine_oracle_s1",
+"args": [
+"--condition",
+"oracle",
+"--seed",
+"1",
+"--minefield",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "blind_baseline_s0",
+"args": [
+"--condition",
+"baseline",
+"--seed",
+"0",
+"--blind",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "blind_baseline_s1",
+"args": [
+"--condition",
+"baseline",
+"--seed",
+"1",
+"--blind",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "blind_baseline_s2",
+"args": [
+"--condition",
+"baseline",
+"--seed",
+"2",
+"--blind",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "blind_baseline_s3",
+"args": [
+"--condition",
+"baseline",
+"--seed",
+"3",
+"--blind",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "blind_baseline_s4",
+"args": [
+"--condition",
+"baseline",
+"--seed",
+"4",
+"--blind",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "blind_baseline_s5",
+"args": [
+"--condition",
+"baseline",
+"--seed",
+"5",
+"--blind",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "blind_baseline_s6",
+"args": [
+"--condition",
+"baseline",
+"--seed",
+"6",
+"--blind",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "blind_baseline_s7",
+"args": [
+"--condition",
+"baseline",
+"--seed",
+"7",
+"--blind",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "blind_progress_s0",
+"args": [
+"--condition",
+"progress",
+"--seed",
+"0",
+"--blind",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "blind_progress_s1",
+"args": [
+"--condition",
+"progress",
+"--seed",
+"1",
+"--blind",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "blind_progress_s2",
+"args": [
+"--condition",
+"progress",
+"--seed",
+"2",
+"--blind",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "blind_progress_s3",
+"args": [
+"--condition",
+"progress",
+"--seed",
+"3",
+"--blind",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "blind_progress_s4",
+"args": [
+"--condition",
+"progress",
+"--seed",
+"4",
+"--blind",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "blind_progress_s5",
+"args": [
+"--condition",
+"progress",
+"--seed",
+"5",
+"--blind",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "blind_progress_s6",
+"args": [
+"--condition",
+"progress",
+"--seed",
+"6",
+"--blind",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "blind_progress_s7",
+"args": [
+"--condition",
+"progress",
+"--seed",
+"7",
+"--blind",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "blind_oracle_s0",
+"args": [
+"--condition",
+"oracle",
+"--seed",
+"0",
+"--blind",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "blind_oracle_s1",
+"args": [
+"--condition",
+"oracle",
+"--seed",
+"1",
+"--blind",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "blind_oracle_s2",
+"args": [
+"--condition",
+"oracle",
+"--seed",
+"2",
+"--blind",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "blind_oracle_s3",
+"args": [
+"--condition",
+"oracle",
+"--seed",
+"3",
+"--blind",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+}
+]
