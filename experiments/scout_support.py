@@ -57,15 +57,22 @@ HIST_LEN = 6              # steps of scout motion history in observations
 ACT_DIM = 2
 MINEFIELD = False
 MINE_PENALTY = 1.5
+SHAPE_W = 1.0    # multiplier on the scout's distance shaping (signal cost)
 
 
-def configure(n_sites=3, minefield=False):
-    """Set the environment family: meaning-space size and reward variant.
+def configure(n_sites=3, minefield=False, support_speed=None, shape_w=None):
+    """Set the environment family: meaning-space size, reward variant,
+    supporter speed (controls the oracle premium), and scout shaping weight
+    (controls the economic cost of signaling detours).
     Must be called before constructing envs, listeners, or policies."""
     global N_SITES, N_MEANINGS, MINEFIELD, OBS_DIM, PREF_SLICE, KEY_INDEX, \
-        PARTNER_PREF_SLICE
+        PARTNER_PREF_SLICE, SUPPORT_SPEED, SHAPE_W
     N_SITES = N_MEANINGS = n_sites
     MINEFIELD = minefield
+    if support_speed is not None:
+        SUPPORT_SPEED = support_speed
+    if shape_w is not None:
+        SHAPE_W = shape_w
     K = n_sites
     OBS_DIM = 37 + 4 * K
     PREF_SLICE = slice(6, 6 + K)
@@ -174,7 +181,7 @@ class ScoutSupportEnv:
         both_in = (d_scout < COVER_RADIUS) & (d_sup < COVER_RADIUS) & (self.has_key > 0)
         # scout shaping: reach the waypoint first, then the target
         scout_shape = torch.where(self.has_key > 0, d_scout, d_wp + 1.0)
-        r_ext = BONUS * both_in.float() - scout_shape - d_sup
+        r_ext = BONUS * both_in.float() - SHAPE_W * scout_shape - d_sup
         if MINEFIELD:
             # entering any non-target site is penalized: wrong commitment is
             # costly, not merely slow

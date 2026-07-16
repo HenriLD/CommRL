@@ -107,8 +107,12 @@ def main():
     p.add_argument("--minefield", action="store_true")
     p.add_argument("--blind", action="store_true",
                    help="control: supporter cannot observe the scout")
+    p.add_argument("--sup_speed", type=float, default=None,
+                   help="supporter max speed (controls the oracle premium)")
+    p.add_argument("--shape_w", type=float, default=None,
+                   help="scout shaping weight (controls signal cost)")
     args = p.parse_args()
-    S.configure(args.n_sites, args.minefield)
+    S.configure(args.n_sites, args.minefield, args.sup_speed, args.shape_w)
 
     torch.set_num_threads(args.threads)
     torch.manual_seed(args.seed)
