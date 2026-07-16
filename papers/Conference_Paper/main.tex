@@ -254,14 +254,21 @@ Table~\ref{tab:scout} summarizes Environment A at the converged budget (400 cycl
 
 \textbf{A too-competent listener exerts no pressure.} The learned listener inverts this logic and fails by succeeding. Trained to convergence, $\Ltheta$ decodes the scout at $97\%$ \emph{whatever the scout does}: its reward saturates near the $\log 3$ ceiling ($+1.03$), the pragmatic gradient on behavior vanishes, and the speaker-only learned condition ends indistinguishable from---nominally below---the baseline ($0.828$, $-15\%$ closure, n.s.). Deploying the same listener as the supporter's \emph{ear} (its posterior appended to the supporter's observation, still decentralized-executable) recovers a significant $30\%$ of the premium ($0.878\pm.012$, Welch $t=2.15$), and the ear works nearly as well with no speaker subsidy at all ($0.874$, $26\%$): with a saturated listener, all the value is in the decoding, none in the speaking. Combining the two families---the filter reward for the scout with its belief as the ear---matches the filter reward alone ($0.920$, $66\%$): once the speaker signals overtly, the equipped ear is redundant, confirming that the overt channel is read directly from behavior.
 
-\textbf{One recipe, three environments.} To rule out benchmark idiosyncrasy, we transfer the winning recipe---progress listener, $\lambda=0.3$, VOI weighting, every hyperparameter frozen---to two structurally distinct variants, each re-gated for its own oracle premium (8 seeds throughout). With \emph{five} meanings (sites at $72^\circ$, chance $=0.2$), inference is harder and the recipe closes $82\%$ of the premium ($0.787$ vs.\ baseline $0.725$ and oracle $0.801$; Welch $t=4.0$, $p=.001$). In a \emph{minefield} variant where entering a wrong site is penalized---changing the risk structure so hedging is costly rather than merely slow---it closes $61\%$ ($0.898$ vs.\ $0.819$/$0.947$; $t=5.2$, $p<.001$). Together with the $70\%$ closure in the standard task, the recipe delivers majority-gap closure at $p{\le}.001$ under varied meaning-space size and payoff structure, with no per-environment tuning.
+\textbf{One recipe, three environments.} Figure~\ref{fig:forest} summarizes the paper's central comparisons on a single axis: the fraction of each environment's oracle premium closed. To rule out benchmark idiosyncrasy, we transfer the winning recipe---progress listener, $\lambda=0.3$, VOI weighting, every hyperparameter frozen---to two structurally distinct variants, each re-gated for its own oracle premium (8 seeds throughout). With \emph{five} meanings (sites at $72^\circ$, chance $=0.2$), inference is harder and the recipe closes $82\%$ of the premium ($0.787$ vs.\ baseline $0.725$ and oracle $0.801$; Welch $t=4.0$, $p=.001$). In a \emph{minefield} variant where entering a wrong site is penalized---changing the risk structure so hedging is costly rather than merely slow---it closes $61\%$ ($0.898$ vs.\ $0.819$/$0.947$; $t=5.2$, $p<.001$). Together with the $70\%$ closure in the standard task, the recipe delivers majority-gap closure at $p{\le}.001$ under varied meaning-space size and payoff structure, with no per-environment tuning.
 
 \textbf{Robustness and grounding.} The $\lambda\times$VOI response surface is flat at convergence ($0.83$--$0.88$ for $\lambda \in [0.1, 0.6]$, all VOI weightings) until $\lambda=1$ becomes destructive ($0.61$); the weighting effects that mattered mid-training (Sec.~\ref{ssec:results_dynamics}) wash out asymptotically. Zero-shot cross-play---pairing scouts and supporters from independently trained seeds---retains $92$--$94\%$ of self-play reward in every condition, no worse than the baseline's own cross-seed transfer; cross-paired filter teams ($0.844$) still match baseline \emph{self}-play. The emergent protocols are thus grounded in task geometry rather than seed-specific convention, addressing the fragility concern raised by the zero-shot-coordination literature \cite{obl}. Finally, at $16\times$ the parameter count (hidden width $1024$, 3 seeds) the qualitative ordering is unchanged---learned $\approx$ baseline $<$ ear $<$ oracle---though larger networks shrink the premium itself ($0.945$ vs.\ $1.008$) by coordinating better from raw observations.
 
 \subsubsection{Training Dynamics: Three Stories Before the True One}
 \label{ssec:results_dynamics}
 
-We report, as a methodological caution, that this benchmark produced \emph{three successive spurious conclusions} before the converged one, each supported by earnest-looking evidence. At $150$ training cycles (of the $\sim$400 needed), hand-crafted listeners appeared \emph{destructive} ($-1.6$ for exclusivity) and the learned-ear conditions appeared to close $30\%$ of a then-larger gap---an effect that evaporated ($-3\%$) when seeds were doubled, because every condition was still climbing and seed-to-seed differences in learning stage masqueraded as treatment effects. Mid-training, value-of-information weighting of $\Rcomm$ (paying for clarity before the scout's pickup, when the supporter's decision hangs) measurably steered emergence where uniform weighting bought only \emph{lazy clarity}---decodability where behavior was already informative; at convergence both effects vanish. Communicative-MARL comparisons are unusually exposed to this hazard because the quantity of interest is a \emph{co-adaptation} between policies and listeners, which converges more slowly than either alone. We recommend reporting the training-stage sensitivity of any claimed communication effect.
+We report, as a methodological caution, that this benchmark produced \emph{three successive spurious conclusions} before the converged one, each supported by earnest-looking evidence. Figure~\ref{fig:budget} makes the hazard visible: the same experiment, evaluated at increasing training budgets, estimates the progress listener's effect as \emph{strongly negative} for the first $0.5$M steps, near zero at the budget our early experiments used, and $+70\%$ only past ${\sim}1$M steps. At $150$ training cycles (of the $\sim$400 needed), hand-crafted listeners appeared \emph{destructive} ($-1.6$ for exclusivity) and the learned-ear conditions appeared to close $30\%$ of a then-larger gap---an effect that evaporated ($-3\%$) when seeds were doubled, because every condition was still climbing and seed-to-seed differences in learning stage masqueraded as treatment effects. Mid-training, value-of-information weighting of $\Rcomm$ (paying for clarity before the scout's pickup, when the supporter's decision hangs) measurably steered emergence where uniform weighting bought only \emph{lazy clarity}---decodability where behavior was already informative; at convergence both effects vanish. Communicative-MARL comparisons are unusually exposed to this hazard because the quantity of interest is a \emph{co-adaptation} between policies and listeners, which converges more slowly than either alone. We recommend reporting the training-stage sensitivity of any claimed communication effect, in the form of Figure~\ref{fig:budget}.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.95\columnwidth]{img/budget_dynamics.png}
+\caption{The pre-convergence hazard: the estimated fraction of the premium closed, as a function of the training budget at which the comparison is made (bootstrap $95\%$ bands, 10 seeds). The progress listener would be judged \emph{harmful} for the first $0.5$M steps and null at our early evaluation budget (vertical line); the ordering among conditions stabilizes only past ${\sim}1$M steps.}
+\label{fig:budget}
+\end{figure}
 
 \begin{table}[t]
 \centering
@@ -292,8 +299,15 @@ Filter + ear ($n{=}10$) & $0.920\pm.012$ & $66\%$ & $.854$ & $+0.47$ \\
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.95\columnwidth]{img/scout_commit_curve.png}
-\caption{Supporter commitment accuracy over the episode (converged policies, 256 held-out episodes). Motion-grounded listeners and the ear shift the curve toward the oracle's during the decision window.}
+\includegraphics[width=0.95\columnwidth]{img/forest.png}
+\caption{The results on one axis: fraction of each environment's oracle premium closed (dots; lines are bootstrap $95\%$ CIs over seeds). Bounded motion-grounded listeners transfer across environments; the saturated learned listener and the blind control sit at zero.}
+\label{fig:forest}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.95\columnwidth]{img/commit_delta.png}
+\caption{Supporter commitment accuracy \emph{relative to baseline} over the episode (converged policies, 256 held-out episodes; bands combine both groups' s.e.m.). Plotting the difference makes the small, consistent timing gains visible where absolute curves overlap: motion-grounded listeners and the ear buy a fraction of the oracle's early-commitment advantage during the decision window ($t\lesssim20$).}
 \label{fig:commit_curve}
 \end{figure}
 
@@ -314,7 +328,7 @@ Filter + ear ($n{=}10$) & $0.920\pm.012$ & $66\%$ & $.854$ & $+0.47$ \\
 \subsection{Environment B: The Cost of Signaling with Nothing to Say}
 \label{ssec:results_spread}
 
-Table~\ref{tab:final} summarizes final performance in the control environment; Figures~\ref{fig:task_reward}--\ref{fig:comm_reward} show training dynamics.
+Table~\ref{tab:final} summarizes final performance in the control environment; Figures~\ref{fig:task_reward} and \ref{fig:comm_reward} show the two training dynamics that carry information here (task reward, where the exclusivity listener's collapse is visible, and each condition's own communicative reward, where calibration levels separate).
 
 \begin{table}[t]
 \centering
@@ -340,12 +354,12 @@ Learned + RSA & $\mathbf{1.09\pm.03}$ & $\mathbf{.853}$ & $\mathbf{-0.13}$ & $.5
 \subsubsection{Hand-Crafted Listeners: Miscalibrated Signaling}
 \label{ssec:results_heuristic}
 
-The exclusivity listener exhibits an instructive failure mode, which we also observed in preliminary experiments with an independent, larger-scale implementation. The composite reward is clearly operative---early in training it even \emph{accelerates} learning (Fig.~\ref{fig:task_reward}), and it drives the geometric probe accuracy up faster than any other condition (Fig.~\ref{fig:probe_acc})---yet the agent never comes close to optimizing the communicative reward itself. $\Rcomm$ plateaus around $-2.4$ (Fig.~\ref{fig:comm_reward}), \emph{below} the uninformative level of zero: the pragmatic listener built on this common ground assigns the true meaning \emph{less} probability than a uniform guess. The exclusivity score (Eq.~\ref{eq:exclusivity}) demands that an action align with the true target's direction while misaligning with every competing direction; when landmarks subtend similar bearings this margin is geometrically unsatisfiable, so the agent pays a permanent tax for a signal that cannot be produced. The tax is visible everywhere: final task reward drops by $47\%$ relative to the baseline, distance and collision penalties rise, and specialization saturates lower ($.815$ vs.\ $.847$). The simple cosine listener, which removes the exclusivity margin, is correspondingly less harmful ($\Rext = 0.93$) and achieves a better---but still negative---$\Rcomm$. We call this failure mode \emph{miscalibrated signaling}: a hand-crafted common ground rewards behavior the policy cannot realize and an observer cannot decode, converting the intrinsic reward into pure interference.
+The exclusivity listener exhibits an instructive failure mode, which we also observed in preliminary experiments with an independent, larger-scale implementation. The composite reward is clearly operative---early in training it even \emph{accelerates} learning (Fig.~\ref{fig:task_reward}), and it drives the geometric probe accuracy up faster than any other condition---yet the agent never comes close to optimizing the communicative reward itself. $\Rcomm$ plateaus around $-2.4$ (Fig.~\ref{fig:comm_reward}), \emph{below} the uninformative level of zero: the pragmatic listener built on this common ground assigns the true meaning \emph{less} probability than a uniform guess. The exclusivity score (Eq.~\ref{eq:exclusivity}) demands that an action align with the true target's direction while misaligning with every competing direction; when landmarks subtend similar bearings this margin is geometrically unsatisfiable, so the agent pays a permanent tax for a signal that cannot be produced. The tax is visible everywhere: final task reward drops by $47\%$ relative to the baseline, distance and collision penalties rise, and specialization saturates lower ($.815$ vs.\ $.847$). The simple cosine listener, which removes the exclusivity margin, is correspondingly less harmful ($\Rext = 0.93$) and achieves a better---but still negative---$\Rcomm$. We call this failure mode \emph{miscalibrated signaling}: a hand-crafted common ground rewards behavior the policy cannot realize and an observer cannot decode, converting the intrinsic reward into pure interference.
 
 \subsubsection{Learned Listeners: Calibrated Legibility}
 \label{ssec:results_learned}
 
-The learned listener changes the picture qualitatively. Both learned conditions steadily optimize their communicative reward from $-0.65$ toward zero (Fig.~\ref{fig:comm_reward}), confirming that the co-adapted reward is learnable---by construction, it only credits distinctions that are actually present in the behavioral distribution. This calibration eliminates the destructive interference: task performance is statistically indistinguishable from the baseline ($1.03\pm.08$ and $1.09\pm.03$ vs.\ $1.07\pm.03$), with the pragmatic variant nominally best on task reward and specialization. During training, the co-adapting listener's accuracy climbs from chance ($1/3$) to $\approx.43$ and is still rising at the end (Fig.~\ref{fig:listener_acc}), with the RSA-recursed variant consistently ahead of the purely literal one---suggesting that contrastive reasoning over alternatives extracts signal that maximum-likelihood decoding alone does not.
+The learned listener changes the picture qualitatively. Both learned conditions steadily optimize their communicative reward from $-0.65$ toward zero (Fig.~\ref{fig:comm_reward}), confirming that the co-adapted reward is learnable---by construction, it only credits distinctions that are actually present in the behavioral distribution. This calibration eliminates the destructive interference: task performance is statistically indistinguishable from the baseline ($1.03\pm.08$ and $1.09\pm.03$ vs.\ $1.07\pm.03$), with the pragmatic variant nominally best on task reward and specialization. During training, the co-adapting listener's accuracy climbs from chance ($1/3$) to $\approx.43$ and is still rising at the end, with the RSA-recursed variant consistently ahead of the purely literal one---suggesting that contrastive reasoning over alternatives extracts signal that maximum-likelihood decoding alone does not. Specialization and probe accuracy do not differ measurably across conditions in this environment (consistent with its near-zero premium), so we omit their curves.
 
 \subsubsection{How Much Was There to Say? Oracles and Post-Hoc Probes}
 \label{ssec:results_oracle}
@@ -383,20 +397,6 @@ Figure~\ref{fig:trajectories} shows a representative held-out episode of Environ
 \includegraphics[width=0.93\columnwidth]{img/task_reward.png}
 \caption{Mean per-step team reward $\Rext$ (3 seeds, mean $\pm$ s.e.m.).}
 \label{fig:task_reward}
-\end{figure}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.93\columnwidth]{img/specialization.png}
-\caption{Team specialization: fraction of landmarks claimed uniquely.}
-\label{fig:specialization}
-\end{figure}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.93\columnwidth]{img/probe_acc.png}
-\caption{Probe intent accuracy under the fixed geometric probe listener, identical across conditions.}
-\label{fig:probe_acc}
 \end{figure}
 
 \begin{figure}[t]
