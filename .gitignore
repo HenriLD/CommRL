@@ -214,6 +214,7 @@ training_profile.prof
 # experiment outputs
 experiments/results*/
 *.pt
+*.err
 
 papers/ICASSP_Paper/
 papers/Master_Thesis/
