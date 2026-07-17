@@ -47,6 +47,25 @@ def agg(resroot, cond, key="r_ext"):
     return np.array(v)
 
 
+def boot_slope(triples, n_boot=10000, seed=0):
+    """Bootstrap the origin-constrained slope over seeds within settings.
+
+    triples: list of (base_vals, orac_vals, gain_vals) arrays per setting.
+    """
+    rng = np.random.default_rng(seed)
+    ks = np.empty(n_boot)
+    for i in range(n_boot):
+        xs, ys = [], []
+        for b, o, g in triples:
+            bb = rng.choice(b, len(b)); oo = rng.choice(o, len(o))
+            gg = rng.choice(g, len(g))
+            xs.append(oo.mean() - bb.mean())
+            ys.append(gg.mean() - bb.mean())
+        x, y = np.array(xs), np.array(ys)
+        ks[i] = (x * y).sum() / (x * x).sum()
+    return np.percentile(ks, [2.5, 97.5])
+
+
 def sem(v):
     return v.std(ddof=1) / math.sqrt(len(v)) if len(v) > 1 else 0.0
 
@@ -69,7 +88,7 @@ def main():
         gain_e = math.sqrt(sem(g) ** 2 + sem(b) ** 2)
         t = gain / gain_e if gain_e else 0
         rows.append(dict(label=label, grp=grp, prem=prem, gain=gain,
-                         prem_e=prem_e, gain_e=gain_e, t=t,
+                         prem_e=prem_e, gain_e=gain_e, t=t, vals=(b, o, g),
                          n=min(len(b), len(o), len(g))))
 
     print(f"{'setting':22s} {'n':>2s} {'premium':>14s} {'gain':>14s} {'ratio':>6s} {'t':>5s}")
@@ -84,7 +103,17 @@ def main():
     x = np.array([r["prem"] for r in fit])
     y = np.array([r["gain"] for r in fit])
     k = float((x * y).sum() / (x * x).sum())
-    print(f"\nproportional fit over {len(fit)} resolvable settings: gain = {k:.2f} x premium")
+    lo, hi = boot_slope([r["vals"] for r in fit])
+    print(f"\nproportional fit over {len(fit)} resolvable settings: "
+          f"gain = {k:.2f} x premium  (bootstrap 95% CI [{lo:.2f}, {hi:.2f}])")
+
+    # same fit excluding the settings the paper classifies as failure modes
+    ok = [r for r in fit if r["grp"] == "core"]
+    xo = np.array([r["prem"] for r in ok]); yo = np.array([r["gain"] for r in ok])
+    k_ok = float((xo * yo).sum() / (xo * xo).sum())
+    lo2, hi2 = boot_slope([r["vals"] for r in ok])
+    print(f"excluding failure-mode settings ({len(ok)} points): "
+          f"gain = {k_ok:.2f} x premium  (bootstrap 95% CI [{lo2:.2f}, {hi2:.2f}])")
 
     LABEL_OFF = {
         "Scout-support": (-14, 10), "Minefield": (8, 3),
@@ -103,8 +132,10 @@ def main():
     ax.plot(xs, xs, color="#aaaaaa", lw=0.9, ls=":", zorder=1)
     ax.text(0.098, 0.094, "oracle", fontsize=6.8, color="#888888",
             ha="right", va="bottom", rotation=34)
-    ax.plot(xs, k * xs, color="#111111", lw=1.6, ls="--", zorder=2,
-            label=f"gain = {k:.2f} $\\times$ premium")
+    ax.plot(xs, k_ok * xs, color="#111111", lw=1.6, zorder=2,
+            label=f"well-behaved: {k_ok:.2f} $\\times$ premium")
+    ax.plot(xs, k * xs, color="#555555", lw=1.2, ls="--", zorder=2,
+            label=f"all settings: {k:.2f} $\\times$ premium")
     seen = set()
     for r in resolv:
         c = COLORS[r["grp"]]

@@ -54,10 +54,12 @@ def fig_forest(figdir):
     add("Ear + $R_{comm}$", RS3, "learned_ear", "baseline", "oracle", COLORS["learned_ear"])
     add("Ear ($\\lambda{=}0$)", RS3, "ear", "baseline", "oracle", COLORS["ear"])
     add("Learned $L_\\theta$ (speaker only)", RS3, "learned", "baseline", "oracle", COLORS["learned"])
-    # blind control: gain under blinding, scaled by the sighted premium
+    # blind control: gain under blinding, scaled by the blind premium
+    # (blind oracle - blind baseline), i.e. the same normalization every
+    # other row gets in its own setting
     bp, bb = seed_means(SUITE, "blind_progress"), seed_means(SUITE, "blind_baseline")
-    b0, o0 = seed_means(RS3, "baseline"), seed_means(RS3, "oracle")
-    prem = o0.mean() - b0.mean()
+    bo = seed_means(SUITE, "blind_oracle")
+    prem = bo.mean() - bb.mean()
     rng = np.random.default_rng(1)
     boots = [(rng.choice(bp, len(bp)).mean() - rng.choice(bb, len(bb)).mean()) / prem
              for _ in range(10000)]
