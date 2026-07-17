@@ -40,7 +40,7 @@ def inject_ear(obs, posterior):
 
 
 def evaluate(actor, cond, listener, seed, n_envs=64, device=torch.device("cpu"),
-             blind=False):
+             blind=False, listener2=None):
     env = S.ScoutSupportEnv(n_envs, oracle=(cond == "oracle"), seed=seed, blind=blind)
     obs = env.reset()
     ear = cond in ("ear", "learned_ear", "filter_ear", "learned_act_ear")
@@ -68,8 +68,16 @@ def evaluate(actor, cond, listener, seed, n_envs=64, device=torch.device("cpu"),
                 rc = S.scout_comm_reward(env, a, kind, gen=gen, pre_pos=pre_pos)
                 tot["comm_rw"] += rc.mean().item()
             elif listener is not None:
-                so, sa = obs[:, 0].to(device), a[:, 0].to(device)
-                rc = listener.comm_reward(so, sa, target.to(device))
+                li = 1 if cond == "partner_belief" else 0
+                so, sa = obs[:, li].to(device), a[:, 0].to(device)
+                if listener2 is not None:  # inforeg: action info beyond state
+                    g = target.to(device).unsqueeze(-1)
+                    lp1 = F.log_softmax(listener(so, sa), dim=-1)
+                    lp0 = F.log_softmax(listener2(so, sa), dim=-1)
+                    rc = (torch.gather(lp1, -1, g)
+                          - torch.gather(lp0, -1, g)).squeeze(-1)
+                else:
+                    rc = listener.comm_reward(so, sa, target.to(device))
                 tot["comm_rw"] += rc.mean().item()
                 pred = listener(so, sa).argmax(-1).cpu()
                 tot["listener_acc"] += (pred == target).float().mean().item()
@@ -92,7 +100,8 @@ def main():
                             "progress", "filter", "learned", "learned_prag",
                             "ear", "learned_ear", "filter_ear",
                             "learned_act", "learned_act_prag", "learned_act_ear",
-                            "learned_pre", "learned_pre_prag"])
+                            "learned_pre", "learned_pre_prag",
+                            "inforeg", "partner_belief"])
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--lam", type=float, default=0.1)
     p.add_argument("--cycles", type=int, default=150)
@@ -136,10 +145,16 @@ def main():
     use_listener = args.condition in ("learned", "learned_prag", "ear", "learned_ear",
                                       "learned_act", "learned_act_prag",
                                       "learned_act_ear",
-                                      "learned_pre", "learned_pre_prag")
+                                      "learned_pre", "learned_pre_prag",
+                                      "inforeg", "partner_belief")
     listener_inputs = ("act" if args.condition.startswith(("learned_act", "learned_pre"))
+                       else "partner" if args.condition == "partner_belief"
                        else "full")
     listener_prekey = args.condition.startswith("learned_pre")
+    # external baselines: Strouse-style variational I(A;M|S) needs a second,
+    # state-only decoder; Tian-style partner belief reads the supporter's obs
+    inforeg = args.condition == "inforeg"
+    pbelief = args.condition == "partner_belief"
     ear = args.condition in ("ear", "learned_ear", "filter_ear", "learned_act_ear")
 
     env = S.ScoutSupportEnv(args.n_envs, oracle=(args.condition == "oracle"),
@@ -159,6 +174,9 @@ def main():
     listener = S.ScoutListener(inputs=listener_inputs).to(device) if use_listener else None
     opt_l = (torch.optim.Adam(listener.parameters(), lr=args.listener_lr)
              if use_listener else None)
+    listener2 = S.ScoutListener(inputs="state").to(device) if inforeg else None
+    opt_l2 = (torch.optim.Adam(listener2.parameters(), lr=args.listener_lr)
+              if inforeg else None)
 
     buf = ReplayBuffer(400_000, device, n_agents=S.N_AGENTS,
                        obs_dim=S.OBS_DIM, act_dim=S.ACT_DIM)
@@ -212,7 +230,8 @@ def main():
                 b_target = b_pref[:, 0]
 
                 if use_listener:
-                    logits = listener(b_obs[:, 0], b_act[:, 0])
+                    l_in = b_obs[:, 1] if pbelief else b_obs[:, 0]
+                    logits = listener(l_in, b_act[:, 0])
                     if listener_prekey:
                         w = 1.0 - b_obs[:, 0, S.KEY_INDEX]
                         ce = F.cross_entropy(logits, b_target, reduction="none")
@@ -220,6 +239,10 @@ def main():
                     else:
                         l_loss = F.cross_entropy(logits, b_target)
                     opt_l.zero_grad(); l_loss.backward(); opt_l.step()
+                    if inforeg:
+                        logits2 = listener2(b_obs[:, 0], b_act[:, 0])
+                        l2_loss = F.cross_entropy(logits2, b_target)
+                        opt_l2.zero_grad(); l2_loss.backward(); opt_l2.step()
                     if lam > 0:
                         with torch.no_grad():
                             if args.condition in ("learned_prag", "learned_act_prag",
@@ -234,8 +257,16 @@ def main():
                                 rc = listener.comm_reward(b_obs[:, 0], b_act[:, 0],
                                                           b_target, pragmatic=True,
                                                           alt_actions=alt)
+                            elif inforeg:
+                                # variational I(A; M | S): what the action adds
+                                # beyond the (masked) state
+                                lp1 = F.log_softmax(logits, dim=-1)
+                                lp0 = F.log_softmax(logits2, dim=-1)
+                                g = b_target.unsqueeze(-1)
+                                rc = (torch.gather(lp1, -1, g)
+                                      - torch.gather(lp0, -1, g)).squeeze(-1)
                             else:
-                                rc = listener.comm_reward(b_obs[:, 0], b_act[:, 0],
+                                rc = listener.comm_reward(l_in, b_act[:, 0],
                                                           b_target)
                             b_pre_key = 1.0 - b_obs[:, 0, S.KEY_INDEX]
                             rc = rc * (args.voi + (1 - args.voi) * b_pre_key)
@@ -273,7 +304,7 @@ def main():
 
         if (cycle + 1) % 10 == 0 or cycle == args.cycles - 1:
             m = evaluate(actor, args.condition, listener, seed=12345, device=device,
-                         blind=args.blind)
+                         blind=args.blind, listener2=listener2)
             m.update(cycle=cycle + 1, steps=total_steps,
                      wall_min=round((time.time() - t0) / 60, 1))
             history.append(m)
@@ -286,7 +317,8 @@ def main():
 
     torch.save({"actor": actor.state_dict(),
                 "listener": listener.state_dict() if listener else None,
-                "listener_inputs": listener_inputs if listener else None},
+                "listener_inputs": listener_inputs if listener else None,
+                "listener2": listener2.state_dict() if listener2 else None},
                os.path.join(args.outdir, "model.pt"))
     print(f"DONE {args.condition} seed {args.seed} in {(time.time()-t0)/60:.1f} min")
 

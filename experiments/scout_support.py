@@ -294,7 +294,10 @@ class ScoutListener(nn.Module):
     def __init__(self, hidden=128, inputs="full"):
         super().__init__()
         self.inputs = inputs
-        in_dim = OBS_DIM + ACT_DIM if inputs == "full" else 2 * N_SITES + ACT_DIM
+        in_dim = {"full": OBS_DIM + ACT_DIM,       # masked context + action
+                  "act": 2 * N_SITES + ACT_DIM,    # audience viewpoint
+                  "state": OBS_DIM,                # masked context, no action
+                  "partner": OBS_DIM}[inputs]      # the partner's own obs
         self.net = nn.Sequential(
             nn.Linear(in_dim, hidden), nn.ReLU(),
             nn.Linear(hidden, hidden), nn.ReLU(),
@@ -308,6 +311,8 @@ class ScoutListener(nn.Module):
         x = obs.clone()
         x[..., PREF_SLICE] = 0.0
         x[..., PARTNER_PREF_SLICE] = 0.0
+        if self.inputs in ("state", "partner"):
+            return x
         return torch.cat([x, actions], dim=-1)
 
     def forward(self, obs, actions):

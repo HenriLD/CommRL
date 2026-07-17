@@ -160,12 +160,13 @@ def main():
     p.add_argument("--tau", type=float, default=0.005)
     p.add_argument("--outdir", required=True)
     p.add_argument("--threads", type=int, default=4)
+    p.add_argument("--device", default="cpu")
     args = p.parse_args()
 
     torch.set_num_threads(args.threads)
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
-    device = torch.device("cpu")
+    device = torch.device(args.device)
     os.makedirs(args.outdir, exist_ok=True)
 
     lam = 0.0 if args.condition in ("baseline", "oracle") else args.lam
@@ -179,7 +180,7 @@ def main():
     critic_t.load_state_dict(critic.state_dict())
     opt_a = torch.optim.Adam(actor.parameters(), lr=args.lr)
     opt_c = torch.optim.Adam(critic.parameters(), lr=args.lr)
-    log_alpha = torch.zeros(1, requires_grad=True)
+    log_alpha = torch.zeros(1, requires_grad=True, device=device)
     opt_alpha = torch.optim.Adam([log_alpha], lr=args.lr)
     target_entropy = -float(ACT_DIM)
 
@@ -198,7 +199,8 @@ def main():
         for t in range(EPISODE_LEN):
             with torch.no_grad():
                 if total_steps < 2000:
-                    a = torch.rand((args.n_envs, N_AGENTS, ACT_DIM), generator=gen) * 2 - 1
+                    a = (torch.rand((args.n_envs, N_AGENTS, ACT_DIM),
+                                    generator=gen) * 2 - 1).to(device)
                 else:
                     a, _ = actor.sample(obs)
             dirs, pref = env.goal_dirs(), env.pref
@@ -232,7 +234,8 @@ def main():
                         if args.condition == "learned":
                             b_rcomm = listener.comm_reward(b_obs, b_act, b_pref)
                         else:  # learned_prag
-                            alt = torch.rand((*b_act.shape[:-1], 16, 2)) * 2 - 1
+                            alt = torch.rand((*b_act.shape[:-1], 16, 2),
+                                             device=device) * 2 - 1
                             b_rcomm = listener.comm_reward(
                                 b_obs, b_act, b_pref, pragmatic=True, alt_actions=alt)
 
