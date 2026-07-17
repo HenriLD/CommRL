@@ -47,7 +47,7 @@ def launch(args):
         while queue and len(running) < args.workers:
             name, outdir, extra = queue.pop(0)
             os.makedirs(outdir, exist_ok=True)
-            cmd = [args.python or GPU_PY, os.path.join(HERE, "train_scout.py"),
+            cmd = [args.python or GPU_PY, os.path.join(HERE, args.script),
                    "--outdir", outdir] + extra
             log = open(os.path.join(outdir, "log.txt"), "w")
             p = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT)
@@ -112,6 +112,8 @@ def main():
     pl.add_argument("--spec", required=True)
     pl.add_argument("--outroot", required=True)
     pl.add_argument("--workers", type=int, default=5)
+    pl.add_argument("--script", default="train_scout.py",
+                    help="trainer module (e.g. train_merge.py, train_masac.py)")
     pl.add_argument("--python", default=None)
     ps = sub.add_parser("status")
     ps.add_argument("--outroot", required=True)
