@@ -1,0 +1,569 @@
+\documentclass[sigconf,review,anonymous]{acmart}
+\usepackage{booktabs}
+\setcopyright{none}
+\settopmatter{printacmref=false}
+\renewcommand\footnotetextcopyrightpermission[1]{}
+
+\newtheorem{proposition}{Proposition}
+
+\newcommand{\Rcomm}{R_{\text{comm}}}
+\newcommand{\Rext}{R_{\text{ext}}}
+\newcommand{\Rtotal}{R_{\text{total}}}
+\newcommand{\VL}{V_L}
+\newcommand{\AlphaRL}{\alpha_{\text{RL}}}
+\newcommand{\AlphaRSA}{\alpha_{\text{RSA}}}
+\newcommand{\Ltheta}{L_\theta}
+
+\title{Which Listener? Audience Matching for Pragmatic Legibility Rewards in Multi-Agent Reinforcement Learning}
+
+\author{Anonymous Author(s)}
+\affiliation{\institution{Anonymous Institution}\city{}\country{}}
+
+\begin{document}
+
+\begin{abstract}
+Cooperative RL agents often fail not because they act badly but because their intentions are illegible to their partners. Building on the structural correspondence between Maximum-Entropy RL and the Rational Speech Act (RSA) model of pragmatic communication, we import the RSA \emph{listener value}---the log-posterior a listener assigns to an agent's private state given its behavior---as an intrinsic reward for legibility, computed offline and adding no latency at execution. The framework's decisive design choice, and this paper's subject, is \emph{which literal listener} $L_0$ anchors the reward. We prove that any instantaneous listener yields a variational lower bound on the intent--behavior mutual information---maximum-likelihood training merely tightens it---and give a gradient-saturation bound: a listener that decodes with high probability under the policy's occupancy exerts a correspondingly small shaping gradient. Empirically, on \emph{scout-support}, a benchmark whose \emph{oracle-gap} criterion certifies that communication has task value, crude motion-grounded listeners close $60$--$82\%$ of the oracle premium across three task variants with frozen hyperparameters (Welch $t\ge4$), and a blind-partner control eliminates the gain while sparing the oracle: the effect is communication, not shaping. Learned listeners instead fail by succeeding---decoding any behavior, saturating, and shaping nothing---and the failure survives bounding the listener to the audience's own viewpoint. RSA's contrastive recursion is what rescues them: at a raised weight the recursed learned listener recovers about a third of the premium (pooled over sixteen seeds including a pre-registered confirmation) while its weight-matched literal control falls below baseline. What the hand-crafted winners still hold is that they credit only \emph{overt} signals a teammate can actually read. Sweeping partner speed and signal cost yields an empirical regularity---gain ${\approx}\,0.5\times$ premium where a premium exists---with four characterized failure modes, and we document pre-convergence evaluation hazards specific to co-adaptive communication measures.
+\end{abstract}
+
+\begin{CCSXML}
+<ccs2012>
+<concept>
+<concept_id>10010147.10010178.10010219</concept_id>
+<concept_desc>Computing methodologies~Multi-agent systems</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+</ccs2012>
+\end{CCSXML}
+\ccsdesc[500]{Computing methodologies~Multi-agent systems}
+\keywords{multi-agent reinforcement learning; legibility; intrinsic motivation; computational pragmatics; implicit communication}
+
+\maketitle
+
+\section{Introduction}
+\label{sec:intro}
+
+In cooperative multi-agent reinforcement learning (MARL), an agent's success depends not only on its own actions but on being \emph{understood} by its teammates: an agent that rushes toward its goal along an ambiguous path can cause a partner to abandon a target it never intended to claim, while a slightly suboptimal path that unambiguously singles out the intended target enables better coordination. This property of being easily understood is called legibility \cite{dragan2013legibility}, and standard RL agents, optimized solely for task reward, have no incentive to possess it.
+
+This work studies an intrinsic reward $\Rcomm$ for communicative clarity. To compute it, we model an observer who reasons pragmatically about \emph{why} the agent chose its action over the alternatives, using the Rational Speech Act (RSA) framework \cite{goodman2016pragmatic}. Any such observer must be anchored in a \emph{literal listener} $L_0$: the assumed common ground specifying how behavior would be interpreted absent pragmatic reasoning. Our central claim is that this choice is not an implementation detail but the decisive factor in whether legibility rewards help or hurt---and that it fails at both extremes. A hand-crafted listener can be misaligned with what the policy can express, incentivizing costly signaling no observer can decode; a listener learned from the agents' own behavior guarantees decodability by construction, but trained to convergence it decodes \emph{everything} and demands nothing---its reward saturates and the shaping gradient provably vanishes. Mapping the productive region between these extremes---which listener, bounded how---is the empirical core of this paper. Our contributions:
+
+\begin{itemize}
+\item \textbf{A pragmatic derivation of legibility rewards.} A structural correspondence between Max-Ent RL and RSA---both are softmax choice models---motivates importing the RSA listener value as an intrinsic reward, computed offline by a Pragmatic Reward Module compatible with centralized training and decentralized execution; purely communicative models such as CRSA \cite{estienne2025collaborative} occupy the myopic, task-free corner of the same composite objective.
+\item \textbf{Theory locating the listener space.} \emph{Any} listener makes the expected reward a variational lower bound on the intent--behavior mutual information $I(M;S,A)$ (maximum-likelihood training merely tightens it), connecting to information-regularization \cite{strouse2018learning} and skill-discriminability \cite{eysenbach2019diversity} objectives; and a \emph{gradient-saturation} bound shows a listener that decodes with high probability under the policy's occupancy exerts a correspondingly small shaping gradient---the tightest bound can be the worst reward.
+\item \textbf{An evaluation protocol for communicative rewards.} The \emph{oracle-gap} criterion gates benchmarks on whether communication has task value at all; \emph{scout-support}, a two-agent benchmark with a large structural gap, makes task-optimal motion uninformative exactly when information is needed; a blind-partner control separates communication from reward shaping; and a documented pre-convergence hazard shows why converged budgets are non-negotiable for co-adaptive measures.
+\item \textbf{An empirical map of the listener space, with an audience-matching principle.} Motion-grounded hand-crafted listeners close $60$--$82\%$ of the oracle premium (Welch $t\ge4$, frozen hyperparameters, three task variants); learned listeners saturate and shape nothing, a failure that survives bounding their inputs and training window; RSA's contrastive recursion restores about a third of the premium where the weight-matched literal control recovers none; and sweeping what early information is worth and what signaling costs yields a proportionality regularity with four characterized failure modes. The principle that emerges is two-sided: the reward listener must be no stronger than the weakest intended reader, and must credit only the signal vocabulary that reader actually uses.
+\end{itemize}
+
+\section{Related Work}
+\label{sec:related}
+
+\textbf{Legibility and observer-aware rewards.} Legibility inverts goal inference \cite{ziebart2008maximum,baker2017rational}: the actor shapes its behavior so an observer's inference succeeds. Formalized for robot motion \cite{dragan2013legibility}, it has been extended to sequential decision problems \cite{faria2024guess}, observer-aware MDPs \cite{miura2021unifying,miura2024observer}, and MARL \cite{liu2025active}. A complementary line uses observer models as reward signals inside RL: policy search against human observers \cite{busch2017learning}, observer-in-the-loop shaping \cite{bied2020integrating}, legibility-regularized policies \cite{persiani2022policy}, and supervised observer models \cite{wallkotter2022slotv}; Bayesian pedagogy reaches the same mechanism from teaching \cite{ho2016showing,fisac2017pragmatic}. Relative to this body of work, our contributions are the Max-Ent/RSA derivation, a systematic study of \emph{which listener} should anchor the reward---the question prior work fixes by assumption---and the oracle-gap protocol.
+
+\textbf{Intrinsic rewards for coordination.} The closest existing mechanism to $\Rcomm$ is the auxiliary reward of Tian et al.~\cite{tian2020implicit}, which pays an agent for its partner's correct belief about private information transmitted through actions; they fix the audience to the partner's own inference network---one point in the listener space we sweep, and one our saturation analysis predicts loses shaping power exactly when the partner learns to decode. We evaluate this design head-to-head (Sec.~\ref{ssec:results_scout}). Strouse et al.~\cite{strouse2018learning} regularize the conditional information $I(A;G|S)$; we evaluate a variational instantiation of this too. Social influence \cite{jaques2019social} rewards \emph{compelling} a partner's reaction, whereas $\Rcomm$ rewards transmission, leaving teammates free to exploit or ignore the revealed intention. Bayesian action decoding and off-belief learning \cite{bard,obl} control how much agents may read into partners' actions; we directly reward making the intended reading easy. Cross-play evaluations connect to ad-hoc teamwork \cite{mirsky2022survey}.
+
+\textbf{Implicit communication.} Much MARL research equips agents with an explicit channel \cite{foerster2016learning,sukhbaatar2016learning,kim2021communication,boldt2024review}. We study \emph{implicit} communication \cite{knepper2017implicit}: the action is the signal. Sokota et al.~\cite{sokota2022communicating} encode messages into trajectories via minimum-entropy coupling atop a max-ent policy, targeting a chosen bit-rate; our reward asks for legibility of the task-relevant private state only insofar as it pays, with no coupling machinery at execution.
+
+\textbf{Computational pragmatics.} RSA \cite{goodman2016pragmatic} models communication as recursive reasoning between speaker and listener, with learned literal listeners in neural instantiations \cite{monroe2015learning,andreas2016reasoning,fried2018unified} and RSA-style reasoning in emergent communication over explicit channels \cite{kang2020pragmatic}; we run the recursion over \emph{actions} and use its output as a reward. CRSA \cite{estienne2025collaborative} extends RSA to multi-turn dialog under asymmetric information; Sec.~\ref{ssec:bellman} locates such purely communicative agents within our composite objective.
+
+\section{Pragmatic Rewards}
+\label{sec:pragmatic_reward}
+
+\subsection{From RSA to an Intrinsic Reward}
+\label{ssec:derivation}
+
+The single-step Max-Ent-optimal policy and the RSA speaker are both softmax choice models,
+\begin{equation}
+\pi^{*}(a|s)\propto e^{R(s,a)/\AlphaRL}, \qquad
+S(u|m)\propto e^{\AlphaRSA \VL(u,m)},
+\label{eq:softmaxes}
+\end{equation}
+identical in the single-step case under $\AlphaRSA = 1/\AlphaRL$, where the listener value $\VL(u,m)$ quantifies the clarity of act $u$ for conveying meaning $m$ \cite{goodman2016pragmatic,haarnoja2018soft,levine2018reinforcement}. We are explicit about the altitude of this observation: it is a structural correspondence, not an equivalence theorem---any Boltzmann-rational model shares the form, the identification is single-step while our agents are sequential, and in practice the two temperatures are decoupled (the SAC entropy coefficient is auto-tuned while the recursion below runs at unit rationality). Its role is to motivate a definition: treating the action as an utterance about the agent's private state $m_t$ (its ``meaning,'' e.g.\ an intended target), we set
+\begin{equation}
+\Rcomm(s_t, a_t) \triangleq \VL(a_t, m_t) = \log L^*_t(m_t|a_t, s_t) + \log|\mathcal{M}|,
+\label{eq:comm_reward_def}
+\end{equation}
+the \emph{information gain} a pragmatic listener obtains about the true meaning: zero when the action is uninformative, positive as the posterior concentrates. The policy maximizes $\Rtotal = \Rext + \lambda \Rcomm$.
+
+\subsection{The Space of Literal Listeners}
+\label{ssec:listeners}
+
+Computing $L^*$ requires a \emph{literal listener} $L_0(m|a,s)$. Given $L_0$ and a set $\mathcal{A}$ of alternatives (the true action plus $K$ sampled ones; uniform unless noted), the pragmatic listener applies $N_r$ RSA steps at unit rationality and uniform prior,
+\begin{equation}
+S_k(a|m) = \frac{L_{k-1}(m|a,s)}{\sum_{a'\in\mathcal{A}} L_{k-1}(m|a',s)}, \quad
+L_k(m|a) = \frac{S_k(a|m)}{\sum_{m'} S_k(a|m')},
+\label{eq:rsa_recursion}
+\end{equation}
+and $L^* = L_{N_r}$. Because the alternative set is sampled, $\Rcomm$ is stochastic; when alternatives are policy-drawn or $L_0$ co-adapts, it is additionally policy-dependent, and the Bellman analysis below holds per reward snapshot, as for other co-adaptive intrinsic rewards \cite{eysenbach2019diversity}. We study four hand-crafted instantiations and a learned family.
+
+\textbf{(i) Direction listeners} score actions by cosine similarity to the ideal direction $v_m$ toward the target consistent with $m$ (\emph{simple}), optionally penalizing similarity to competing meanings (\emph{exclusivity}: $s = \alpha_{\text{temp}}(\cos(a,v_m) - \max_{m'\neq m}\cos(a,v_{m'}))$).
+\textbf{(ii) The progress listener} scores the per-step reduction in distance to each candidate target, mirroring cost-to-go legibility \cite{dragan2013legibility}.
+\textbf{(iii) The filter listener} maintains a recursive belief $b_t(m) \propto b_{t-1}(m)^{\rho} e^{\alpha_{\text{temp}}\cos(a_t, v_m)}$ with exponential forgetting, rewarding $\log b_t(m_t) + \log|\mathcal{M}|$---explicitly non-Markovian.
+\textbf{(iv) Learned listeners} $\Ltheta(m|s,a)$ are trained by maximum likelihood on replayed transitions (private state masked from the input), so the common ground co-adapts and the reward credits only distinctions present in the current behavioral distribution. We also study \emph{bounded} variants restricted to the audience's viewpoint (site bearings and action only) and to the pre-commitment window (Sec.~\ref{ssec:results_bounded}), with $N_r \ge 1$ adding contrastive reasoning on top.
+
+\subsection{Two Propositions}
+\label{ssec:theory}
+
+\begin{proposition}
+\label{prop:mi}
+Let meanings be uniform on $\mathcal{M}$ and $\Ltheta(m|s,a)$ be any conditional distribution. Under the joint induced by the policy,
+$\mathbb{E}[\log \Ltheta(m|s_t,a_t) + \log|\mathcal{M}|] \leq I(M; S_t, A_t)$,
+with equality iff $\Ltheta$ equals the true posterior. The expected learned-listener reward is the Barber--Agakov bound \cite{barber2003im}; ML training tightens it; policy optimization against it maximizes information disclosure.
+\end{proposition}
+
+\begin{proof}
+$\mathbb{E}[\log \Ltheta] = -H(M|S_t,A_t) - \mathbb{E}\,\mathrm{KL}(p(\cdot|s,a)\|\Ltheta(\cdot|s,a))$; add $H(M)=\log|\mathcal{M}|$.
+\end{proof}
+
+Three remarks. First, the proposition holds for \emph{any} conditional distribution over the same conditioning variables: the instantaneous hand-crafted listeners also yield bounds on the same mutual information, only looser (the filter listener, conditioning on history, bounds the larger $I(M;S_{1:t},A_{1:t})$). What distinguishes the learned listener is not being a bound but being the \emph{tightest} one. Second, the connections to prior objectives are close but not exact: DIAYN \cite{eysenbach2019diversity} maximizes a bound of this form; Strouse et al.~\cite{strouse2018learning} target the conditional $I(A;G|S)$, differing by $I(M;S)$; Eccles et al.~\cite{eccles2019biases} shape an explicit channel with entropy targets. All are forms of the literal ($N_r=0$) level with a learned common ground. Third, the RSA recursion moves $L^*$ away from the ML fit, so it loosens the expected-reward bound whenever that fit is at the posterior---its value, where we find any, is as a \emph{shaping signal}, not an information estimate.
+
+The second proposition delivers the failure mode that dominates our experiments.
+
+\begin{proposition}[Gradient saturation]
+\label{prop:saturation}
+Fix a listener $L$ and a policy $\pi_\phi$ with occupancy $\rho_\pi$, with the reward clipped below at $-B$. If $\rho_\pi(L(m_t|s,a) \geq 1-\epsilon) \geq 1-\delta$, then for any score-function estimator with baseline $b = \mathbb{E}[\Rcomm]$,
+\begin{equation}
+\big\|\nabla_\phi \mathbb{E}_{\pi_\phi}[\Rcomm]\big\| \leq \big(\!-\!\log(1-\epsilon) + \delta(B{+}\log|\mathcal{M}|)\big)\, \mathbb{E}_{\pi_\phi}\big\|\nabla_\phi \log \pi_\phi\big\|,
+\end{equation}
+i.e., $O(\epsilon + \delta B)$ per step, scaled by at most $1/(1-\gamma)$ over the horizon.
+\end{proposition}
+
+\begin{proof}
+On the $(1-\delta)$-mass the reward lies in an interval of width $-\log(1-\epsilon)$; on the $\delta$-mass the clipped reward deviates from $b$ by at most $B + \log|\mathcal{M}|$; the estimator is bounded by the expected deviation from $b$.
+\end{proof}
+
+The high-probability form is what our experiments instantiate (Gaussian policies have unbounded support; measured decode accuracies estimate $1-\delta$ at small $\epsilon$). Our agents use reparameterized (SAC) gradients, where the same interval argument bounds the spread of the reward entering critic targets; we therefore use Proposition~\ref{prop:saturation} as the mechanism \emph{consistent with} the observed inertness rather than a quantitative prediction. It formalizes the saturation direction of the audience-matching principle---a listener that decodes everything demands nothing---and the antecedent can be reached two ways: contextual shortcuts that reveal the meaning regardless of the action, or co-adaptation fast enough to decode whatever the current policy emits. We observe both (Sec.~\ref{ssec:results_bounded}).
+
+\subsection{Architecture and Objective}
+\label{ssec:bellman}
+
+A \emph{Pragmatic Reward Module} computes $\Rcomm$ offline during centralized training---at collection for static listeners, at replay for co-adapting ones---and never in the action-selection loop; at execution agents act from local observations and the module is discarded (CTDE). The action-value function satisfies the soft Bellman backup applied to $\Rtotal$,
+\begin{equation}
+\label{eq:full_bellman}
+Q(s_t, a_t) = \Rtotal(s_t, a_t) + \gamma\, \mathbb{E}_{s_{t+1}}\Big[\AlphaRL \log \!\int\! e^{Q(s_{t+1}, a')/\AlphaRL}\, \mathrm{d}a'\Big],
+\end{equation}
+with the caveats above (per-snapshot for co-adapting rewards; a Markovian critic absorbs the filter listener's history-dependence as reward noise). Setting $\Rext=0$, $\lambda=1$, $\gamma=0$ collapses Eq.~\ref{eq:full_bellman} to a soft-max speaker over $\VL$---the same objective form optimized per turn by dialog models such as CRSA \cite{estienne2025collaborative}; we state this as a correspondence of objective forms, not a formal reduction.
+
+\section{Experimental Setup}
+\label{sec:methodology}
+
+\textbf{Environments and the oracle-gap criterion.} A benchmark for communicative rewards must certify that communication has task value: comparing a baseline against an \emph{oracle} whose observations include all private states measures what intent transmission can unlock. \textbf{Environment A: scout-support} (converged oracle gap $0.112$/step). A fast \emph{scout} privately knows which of three sites is the target; a slower \emph{supporter} earns a team bonus only while both occupy the target together. The scout must first visit a central \emph{pickup waypoint}, so its first-leg task-optimal motion is identical regardless of target---structurally uninformative---and any early information must be actively signaled by curving the approach. The supporter observes the scout's position, velocity, and a 6-step motion history, never its target; only the scout receives $\Rcomm$, with a value-of-information weighting (full weight pre-pickup, $0.2$ after). Variants: \emph{five meanings} (harder inference), \emph{minefield} (wrong commitment costly, not just slow), \emph{blind} (supporter's view of the scout masked---the causal control), and partner-speed / signal-cost sweeps (Sec.~\ref{ssec:boundary}). \textbf{Environment B: preference spread} (oracle gap $\approx 0$). A three-agent cooperative-navigation control where proximity resolves coordination, so an oracle gains nothing; it measures what a communicative reward \emph{costs} when there is nothing to say.
+
+\textbf{Algorithm and conditions.} All agents train with multi-agent SAC: parameter-shared Gaussian actors, a centralized twin critic \cite{lowe2017multi} on the scalar team reward with $\lambda\Rcomm$ added, automatic entropy tuning. Conditions differ only in reward and observation content: baseline ($\lambda{=}0$), oracle, the four hand-crafted listeners, the learned family (literal, $+$RSA, bounded variants), \emph{ear} conditions that append a listener's posterior to the supporter's observation at execution (still decentralized-executable), and two external baselines: \emph{information regularization} in the style of Strouse et al.~\cite{strouse2018learning} (reward $\log q_1(m|s,a) - \log q_0(m|s)$ with two decoders, a variational $I(A;M|S)$) and a \emph{partner-belief} reward in the style of Tian et al.~\cite{tian2020implicit} (a decoder over the supporter's own observation). Hyperparameter provenance: $\lambda=0.3$ and the VOI weight were selected in preliminary short-budget sweeps on the standard task, then frozen for every transfer; full details in Appendix~\ref{app:hyper}.
+
+\textbf{Metrics and statistical policy.} We evaluate on a fixed 64-episode set (identical across conditions; paired comparisons); final performance averages the last three evaluations; 400 training cycles ($1.28$M steps) for Environment A. \emph{Commitment accuracy}: fraction of steps the supporter's nearest site is the true target. \emph{Post-hoc decodability}: a fresh listener trained from scratch on each converged policy's rollouts. Multiple-comparison policy: headline claims have Welch $t \geq 4$ (surviving Bonferroni across the ${\sim}30$ tests at $\alpha{=}.05$); effects at conventional $p{<}.05$ are labeled suggestive and uncorrected.
+
+\section{Results}
+\label{sec:results}
+
+\subsection{Environment A: Which Listener Pays}
+\label{ssec:results_scout}
+
+\begin{table}[t]
+\centering
+\caption{Environment A at the converged budget (mean $\pm$ s.e.m.; $n{=}10$ seeds unless noted). ``Closure'' is the fraction of the oracle premium closed; Commit is the supporter's commitment accuracy.}
+\label{tab:scout}
+\setlength{\tabcolsep}{3.4pt}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Condition} & $\Rext$ & Closure & Commit \\
+\midrule
+Baseline & $0.845\pm.010$ & --- & $.851$ \\
+Oracle & $0.957\pm.008$ & $100\%$ & $.880$ \\
+\midrule
+Simple $L_0$ & $0.915\pm.010$ & $62\%$ & $.857$ \\
+Exclusivity $L_0$ ($n{=}8$) & $0.795\pm.081$ & n.s. & $.850$ \\
+Progress $L_0$ & $\mathbf{0.924\pm.008}$ & $\mathbf{70\%}$ & $\mathbf{.861}$ \\
+Filter $L_0$ & $0.920\pm.006$ & $67\%$ & $.858$ \\
+\midrule
+Learned $\Ltheta$ & $0.828\pm.015$ & $-15\%$ & $.853$ \\
+Learned $+$ RSA ($n{=}8$) & $0.863\pm.008$ & $16\%$ & $.856$ \\
+Bounded $+$ RSA, $\lambda{=}0.6$ ($n{=}16$) & $0.884\pm.006$ & $35\%$ & $.861$ \\
+\midrule
+Info-reg.\ \cite{strouse2018learning} ($n{=}8$) & TBDIR & TBDIRC & TBDIRK \\
+Partner belief \cite{tian2020implicit} ($n{=}8$) & TBDPB & TBDPBC & TBDPBK \\
+\midrule
+Ear ($\lambda{=}0$, $n{=}6$) & $0.874\pm.016$ & $26\%$ & $.854$ \\
+Ear $+$ $\Rcomm$ & $0.878\pm.012$ & $30\%$ & $.858$ \\
+Filter $+$ ear & $0.920\pm.012$ & $66\%$ & $.854$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.95\columnwidth]{img/forest.png}
+\caption{The results on one axis: fraction of each environment's oracle premium closed (dots; bootstrap $95\%$ CIs over seeds). Bounded motion-grounded listeners transfer across environments; the saturated learned listener sits at or below zero; the blind control (scaled by its own premium) sits at zero.}
+\label{fig:forest}
+\end{figure}
+
+Table~\ref{tab:scout} and Figure~\ref{fig:forest} summarize Environment A at the converged budget. The converged oracle premium is $0.112$ per step ($0.957$ vs.\ $0.845$; commitment $.880$ vs.\ $.851$)---the irreducible value of early intent information.
+
+\textbf{Motion-grounded hand-crafted listeners close most of the gap.} The strongest conditions are the simplest: progress $70\%$ (Welch $t=6.2$), filter $67\%$ ($t=6.5$), plain cosine $62\%$ ($t=5.0$)---through the speaker-side reward alone, with the largest commitment gains ($.857$--$.861$) and visibly more legible scouts (post-hoc decoder accuracy $.61$ vs.\ $.54$; Fig.~\ref{fig:info_profile}). These listeners credit only \emph{overtly} geometric signals, and overt signals are exactly what the supporter's own policy network can read from raw observations; the channel is the behavior itself. The exception proves the calibration rule: the exclusivity listener, whose margin demand is geometrically unsatisfiable, is unstable across seeds ($0.795\pm.081$; an early $n{=}3$ estimate of $+16\%$ closure was eliminated by extension to $n{=}8$).
+
+\textbf{A blind-partner control certifies the mechanism.} Masking the supporter's view of the scout (8 seeds; blind oracle 4), the pragmatic gain inverts into a significant cost ($-1.67$ vs.\ $-1.56$; $t=2.8$, $p\approx.02$, uncorrected)---the scout still pays the signaling detour for messages nobody receives---while the blind \emph{oracle} retains full performance ($0.963$). The effect is communication, not shaping.
+
+\textbf{A too-competent listener exerts no pressure.} Trained to convergence, the full-context $\Ltheta$ decodes the scout at $97\%$ \emph{whatever the scout does}: its reward saturates near the $\log 3$ ceiling, and the speaker-side learned condition ends below baseline ($0.828$, $-15\%$). Deployed instead as the supporter's \emph{ear}, the same listener recovers $30\%$ ($t=2.15$, $p\approx.05$, suggestive): with a saturated listener, the value is in the decoding, none in the speaking. Combining a hand-crafted reward with its ear matches the reward alone---once the speaker signals overtly, the equipped ear is redundant.
+
+\textbf{External baselines.} EXTBASELINETEXT
+
+\subsubsection{Bounding the Learned Listener}
+\label{ssec:results_bounded}
+
+\begin{table}[t]
+\centering
+\caption{Bounding the learned listener (8 seeds per condition except as noted; premium $0.112$; $\lambda{=}0.3$ unless noted). ``Sat.''\ is converged decode accuracy. The decisive contrast is the $\lambda{=}0.6$ block: recursion vs.\ no recursion at the same weight is worth $0.064$ ($t\approx3.9$; the $n{=}16$ row pools a pre-registered eight-seed confirmation).}
+\label{tab:bounded}
+\setlength{\tabcolsep}{3.0pt}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Condition} & $\Rext$ & Closure & Commit & Sat. \\
+\midrule
+Learned (full context) & $0.828\pm.015$ & $-15\%$ & $.853$ & $.97$ \\
+\;+ viewpoint bound & $0.849\pm.017$ & $4\%$ & $.851$ & $.95$ \\
+\;+ viewpoint, + RSA & $0.868\pm.011$ & $21\%$ & $.856$ & $.95$ \\
+\;+ window bound & $0.841\pm.017$ & $-4\%$ & $.853$ & $.94$ \\
+\;+ window, + RSA & $0.868\pm.009$ & $21\%$ & $.856$ & $.94$ \\
+\midrule
+Window bound, $\lambda{=}0.6$ & $0.820\pm.016$ & $-22\%$ & $.854$ & $.94$ \\
+\;+ RSA, $\lambda{=}0.6$ ($n{=}16$) & $\mathbf{0.884\pm.006}$ & $\mathbf{35\%}$ & $\mathbf{.861}$ & $.94$ \\
+\;+ RSA, $\lambda{=}1.0$ & $0.849\pm.013$ & $4\%$ & $.864$ & $.96$ \\
+\midrule
+Progress (hand-crafted) & $0.924\pm.008$ & $70\%$ & $.861$ & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+If the learned listener fails because it is too strong, audience matching predicts a remedy: weaken it toward the intended reader. A \emph{viewpoint-bounded} listener sees only the site bearings and the action---what the audience uses to interpret the utterance---removing the contextual shortcut; a \emph{window-bounded} variant is additionally trained only on pre-commitment steps, so decode accuracy cannot be earned from the post-commitment leg (Table~\ref{tab:bounded}).
+
+The first result is a negative control that sharpens the principle: both bounded listeners \emph{re-saturate}---later (decode accuracy $0.54$ at quarter-training for window-bounded vs.\ $0.88$ full-context) and by a different route, co-adapting to whatever the current policy emits, exactly the second saturation mode of Proposition~\ref{prop:saturation}. Their literal rewards end at baseline parity, curing the harm but recovering nothing. Layering RSA recursion on top lands at $0.868$ (a $21\%$ closure) in two replications, ahead of its literal counterpart at all but one evaluation across training.
+
+The second result is the paper's cleanest causal contrast. Raising the weight ($\lambda{=}0.6$, the middle of three swept) lifted the recursed variant to $0.893\pm.009$ ($43\%$) on the selection runs; a pre-registered confirmation on eight fresh seeds showed the regression to the mean our Sec.~\ref{ssec:results_dynamics} teaches readers to expect ($0.875\pm.005$, $27\%$), and the pooled estimate is $0.884\pm.006$: $35\%$ closure, $t=3.4$, commitment $.861$ equal to the progress listener's. The control is decisive: the \emph{literal} listener at the same weight falls \emph{below} baseline ($0.820\pm.016$)---amplifying a saturated reward amplifies noise and cost, not signal. Recursion vs.\ no recursion at matched weight is worth $0.064$ ($t\approx3.9$). Under our conservative policy these fall just short of headline grade and we label them so---suggestive, replicated in direction across four cohorts. Two further levers are inert (policy-drawn alternatives $0.872$; a $10\times$ slower listener $0.861$); the alternatives result shows the $94\%$-saturated listener still discriminates among on-policy alternatives enough to keep the contrastive term informative, a margin whose quantitative account is open. The deployed-ear variant of the bounded listener is redundant by construction and lands at baseline parity ($0.841\pm.023$; an earlier catastrophic estimate was an evaluation bug we disclose in the appendix).
+
+Why the residual gap to the hand-crafted family ($35\%$ vs.\ $70\%$)? On commitment the recursed listener has caught up ($.861$), but the learned listener remains satisfied by \emph{any} decodable regularity, including idiosyncratic codes the co-training supporter tracks imperfectly; the progress listener credits only monotone geometric approach, which anything watching raw motion can read. The constructive recipe for learned reward listeners: bound the inputs to the audience's viewpoint, train on the decision window, add the pragmatic recursion, and calibrate the weight against the reward's gradient-carrying variation.
+
+\textbf{One recipe, three environments; robustness.} Transferring the winning recipe (progress, $\lambda{=}0.3$, VOI, frozen) to two structurally distinct variants: five meanings closes $82\%$ ($t=4.0$), minefield $61\%$ ($t=5.2$)---majority-gap closure at $p{\le}.001$ with no per-environment tuning. The recipe is a plateau, not a tuned point ($0.921$--$0.925$ across $\lambda \in \{0.1,0.3\}\times$VOI; 3 seeds/cell), with a cliff at $\lambda{=}0.6$ ($0.450\pm.203$)---while the same $\lambda$ is the \emph{optimum} for the bounded learned-pragmatic reward: the safe weight range scales inversely with the reward's magnitude, itself an argument for bounded rewards. Zero-shot cross-play retains $92$--$94\%$ of self-play reward (no worse than baseline's own cross-seed transfer), and at $16\times$ parameters the qualitative ordering is unchanged though the premium itself shrinks---readers strengthen.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.95\columnwidth]{img/info_profile.png}
+\caption{Per-timestep decode accuracy of a fresh post-hoc probe on converged behavior. In the early decision window the progress-listener scouts carry the most decodable intent while oracle scouts---whose teams never rely on motion---are the \emph{least} legible early: legibility is bought exactly when the partner is still deciding.}
+\label{fig:info_profile}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{img/scout_trajectories.png}
+\caption{One evaluation episode under three conditions (selected from 60 candidates to maximize the baseline-vs-recipe commitment-time difference; statistics are in Table~\ref{tab:scout}). Squares are sites (target filled); cross and dashed circle mark the pickup waypoint; trajectories darken with time; diamond = the supporter's commitment moment. The baseline supporter hesitates and commits at $t{=}17$; the pragmatically rewarded supporter commits at $t{=}1$, matching the oracle.}
+\label{fig:scout_traj}
+\end{figure}
+
+\subsection{When Does Pragmatism Pay? A Boundary Map}
+\label{ssec:boundary}
+
+We vary the two quantities that should govern the effect---how much early intent is worth (partner speed $0.45$--$0.90$ sets the oracle premium) and what signaling costs (scout shaping weight $2\times$, $4\times$)---5 seeds per setting, everything else frozen, and plot every setting on premium-vs-gain axes (Fig.~\ref{fig:boundary}).
+
+\textbf{An empirical regularity, stated with its scope.} Wherever the premium is resolvable (point estimate $>3\times$ its s.e., fixed before analysis), the recipe captures a roughly constant fraction: an origin-constrained fit over all seven resolvable settings gives $\text{gain} \approx 0.51 \times \text{premium}$ (bootstrap $95\%$ CI $[0.42, 0.59]$). Two caveats are explicit. The two failure-mode settings below (ratio $0.37$) have the \emph{largest} premiums and dominate the fit; excluding them, the remaining five give $0.68\times$ (CI $[0.57,0.79]$, ratios $0.59$--$0.82$)---but that classification was made after seeing the fit, so $0.68$ is exploratory and $0.51$ primary. And gain and premium share each setting's baseline estimate, so their errors are correlated; the bootstrap resamples seeds within settings. All settings come from one environment family and one algorithm: this is a regularity of that family, not a law, and would be falsified by a resolvable-premium, healthy-channel environment with capture outside the fitted range.
+
+\textbf{Failure modes.} Where no premium is resolvable, no gain appears (preference spread $t{=}0.5$; $4\times$ cost $t{=}1.4$). Where the premium is real but the partner too slow ($0.45$) or signaling too expensive ($2\times$), capture drops to $0.37\times$: the premium is partly unreachable at any signaling latency, or the scout rationally emits less. Where the channel is severed (blind), the reward does not merely stop helping---it \emph{hurts}, because the speaker pays for signals nobody receives. Table~\ref{tab:boundary} consolidates the map as a checklist; each row is a way we made the method fail.
+
+\begin{table}[t]
+\centering
+\caption{When pragmatism pays. Each row is a condition varied to failure; ``gain'' is relative to the matched baseline.}
+\label{tab:boundary}
+\setlength{\tabcolsep}{3.2pt}
+\begin{tabular}{llc}
+\toprule
+\textbf{Requirement} & \textbf{Violated by} & \textbf{Gain} \\
+\midrule
+Premium exists & Pref.\ spread; $4\times$ cost & n.s. \\
+Partner observes speaker & Blind partner & $-0.11$ \\
+Partner can act in time & Partner speed $0.45$ & $0.37\times$ \\
+Signal is affordable & $2\times$ shaping & $0.37\times$ \\
+Listener credits readable code & Literal learned $\Ltheta$, any $\lambda$ & n.s. \\
+Listener is calibrated & Exclusivity $L_0$ (unstable) & n.s. \\
+Weight matches reward scale & $\lambda{=}1.0$ (learned); ${\ge}0.6$ (prog.) & $\le 0$ \\
+Evaluated at convergence & $150$ cycles & sign flips \\
+\midrule
+\textit{All hold} & \textit{3 environments} & $0.59$--$0.82\times$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{img/boundary_map.png}
+\caption{The boundary map. \textbf{Left:} across every setting with a resolvable premium, gain scales with premium (solid: well-behaved fit $0.68\times$; dashed: all settings $0.51\times$; dotted: oracle). Settings where the partner is too slow or signaling too costly fall below despite large premiums. \textbf{Right:} no premium / no channel. Left bars $\pm1$ s.e.m., right bars $95\%$ CIs.}
+\label{fig:boundary}
+\end{figure}
+
+\subsubsection{The Pre-Convergence Hazard}
+\label{ssec:results_dynamics}
+
+This benchmark produced three successive spurious conclusions before the converged one. Figure~\ref{fig:budget} shows the same experiment evaluated at increasing budgets: the progress listener's effect reads as strongly negative through $0.5$M steps ($\approx{-}50\%$ closure at the budget our early experiments used) and $+70\%$ only past ${\sim}1$M. At 150 of the ${\sim}400$ needed cycles, hand-crafted listeners appeared destructive and an ear condition appeared to close $30\%$ of a then-larger gap---an effect that evaporated when seeds were doubled. Communicative-MARL comparisons are unusually exposed because the quantity of interest is a co-adaptation between policies and listeners, which converges more slowly than either alone; we recommend reporting training-stage sensitivity in the form of Fig.~\ref{fig:budget}.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.95\columnwidth]{img/budget_dynamics.png}
+\caption{The pre-convergence hazard: estimated fraction of the premium closed vs.\ the training budget at which the comparison is made (bootstrap $95\%$ bands, 10 seeds). The ordering stabilizes only past ${\sim}1$M steps.}
+\label{fig:budget}
+\end{figure}
+
+\subsection{Environment B: The Cost of Signaling with Nothing to Say}
+\label{ssec:results_spread}
+
+ENVBTEXT
+
+\section{Discussion}
+\label{sec:discussion}
+
+\textbf{The audience-matching principle, sharpened by its own ablation.} The learned listener decodes the scout at $97\%$ regardless of behavior: its reward saturates and, by Proposition~\ref{prop:saturation}, the shaping gradient vanishes. The obvious remedy---bound it to the audience's viewpoint and decision window---is necessary but not sufficient: a bounded co-adapting listener still saturates, chasing whatever code the current policy emits. What separates the crude geometric listeners is \emph{what they are able to credit}: only overtly geometric motion, which a feed-forward teammate reading raw observations can also exploit. An omniscient audience needs no speech; an infinitely accommodating one accepts any private code. The working principle is two-sided: anchor $\Rcomm$ in a listener that (a) is no stronger than the weakest intended reader and (b) credits only the signal vocabulary that reader actually uses. The component that survives learning is RSA's recursion: contrastive reasoning over alternatives converts an inert decoder into a reward recovering a third of the premium while the same decoder without recursion stays below baseline---pragmatics helps precisely where decoding alone is inert, because the converged posterior no longer varies with behavior but the contrast against foregone alternatives still does.
+
+\textbf{Calibration and shaping pressure trade off.} Training $\Ltheta$ on the agents' own data guarantees the common ground never demands what the policy cannot express---why it optimizes smoothly and costs nothing where there is nothing to say (Environment B)---but the same property seeds the saturation failure where there \emph{is} something to say: a co-adapting ML listener converges toward the posterior, and the closer it gets, the less its log-posterior varies with behavior.
+
+\textbf{Communication is a two-sided market.} The overt-signal route (shape the speaker with a bounded listener until its motion is readable by ordinary perception) recovers about twice as much as the equipped-receiver route (deploy the listener as an execution-time ear); when the intended reader is weak---an RL policy, plausibly a human---moving the burden of clarity onto the speaker is the better allocation.
+
+\textbf{Limitations.} Intrinsic rewards densify learning signals; commitment-timing and probe metrics mitigate but do not eliminate the confound. The audience-matching principle is demonstrated for one audience class (feed-forward policies over raw observations) in one environment family and one algorithm; its quantitative form---how listener competence should scale with reader competence---is open, and the wide-network check suggests the premium itself shrinks as readers strengthen. Meanings are hand-specified discrete variables. Validation is confined to AI--AI teams; the principle predicts that rewards anchored in human-competence listeners should transfer best to human-agent teams---the natural next experiment. Inverting $\lambda$'s sign turns legibility into obfuscation, suggesting privacy applications \cite{strouse2018learning}.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+We connected pragmatic inference and maximum-entropy RL, importing the RSA listener value as an intrinsic reward for legible behavior whose decisive design choice is the literal listener. Where communication has no task value, miscalibrated listeners charge for undecodable signaling while calibrated ones approach a no-op. Where it is certifiably valuable, crude motion-grounded listeners that credit only overt signals recover $60$--$82\%$ of the oracle premium, while a listener competent enough to decode anything demands nothing---a failure we prove, then probe constructively: bounding the learned listener cures its harm but not its inertness, RSA's contrastive recursion at a raised weight recovers a third of the premium where the weight-matched literal control recovers none, and the restriction to the audience's own signal vocabulary remains the strongest reward. The audience-matching principle that emerges is RSA's oldest lesson restated for reward design: speech is optimized against a literal listener precisely because the literal listener is limited---in competence, and in what it is willing to hear. Agents whose competence includes being understood must be trained against audiences that need the help.
+
+\appendix
+
+\section{Hyperparameters and Reproducibility}
+\label{app:hyper}
+
+\begin{table}[h]
+\centering
+\caption{Hyperparameters (all conditions unless noted).}
+\label{tab:hyperparams}
+\setlength{\tabcolsep}{3.0pt}
+\begin{tabular}{ll}
+\toprule
+\textbf{Parameter} & \textbf{Value} \\
+\midrule
+Parallel environments / episode length & 64 / 50 \\
+Training cycles (Env.\ B / Env.\ A) & ENVBCYC / 400 \\
+Actor / critic architecture & MLP $256\times256$ \\
+Learning rate (actor, critic) / listener & $3{\times}10^{-4}$ / $10^{-3}$ \\
+Discount / target smoothing & 0.95 / 0.005 \\
+Batch / updates per env step & 512 / 4 \\
+Entropy target & $-\dim(\mathcal{A})$ (auto) \\
+Listener $\Ltheta$ & MLP $128\times128$ \\
+Direction listener temp.\ / $K$ / $N_r$ & 5 / 64 / 1 \\
+Learned$+$RSA alternatives / $N_r$ & 16 / 1 \\
+Filter temp.\ / forgetting $\rho$ & 2 / 0.9 \\
+$\lambda$ (Env.\ B / Env.\ A) / VOI weight & 0.1 / 0.3 / 0.2 \\
+Scout / supporter speed; hist.\ window & 1.0 / 0.6; 6 \\
+Bonus / cover / pickup radius & 3.0 / 0.3 / 0.3 \\
+Integration step / damping / accel.\ gain & 0.1 / 0.25 / 5.0 \\
+Arena clamp / site jitter / waypoint jitter & $\pm1.5$ / 0.1 / $\pm0.25$ \\
+Mine penalty; replay; warm-up & 1.5; 400k; 2000 \\
+Evaluation & every 10 cycles, fixed 64 eps.\ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All environments, training, aggregation, and figure code, with launch specifications (JSON files determining every run exactly, including seeds), will be released. One disclosed bug: an earlier snapshot evaluated the bounded-listener ear condition without the posterior injection it was trained with, producing an artifactual $0.551$; the corrected evaluation ($0.841\pm.023$) is what we report.
+
+\section{Environment B Details}
+\label{app:envb}
+
+ENVBAPPENDIX
+
+\bibliographystyle{ACM-Reference-Format}
+\begin{thebibliography}{10}
+
+\bibitem{dragan2013legibility}
+Anca~D. Dragan, Kenton~C.T. Lee, and Siddhartha~S. Srinivasa.
+\newblock Legibility and predictability of robot motion.
+\newblock In {\em HRI}, 2013.
+
+\bibitem{goodman2016pragmatic}
+Noah~D. Goodman and Michael~C. Frank.
+\newblock Pragmatic language interpretation as probabilistic inference.
+\newblock {\em Trends in Cognitive Sciences}, 20(11):818--829, 2016.
+
+\bibitem{estienne2025collaborative}
+Lautaro Estienne, Gabriel Ben~Zenou, Nona Naderi, Jackie~Chi~Kit Cheung, and Pablo Piantanida.
+\newblock Collaborative rational speech act: Pragmatic reasoning for multi-turn dialog.
+\newblock In {\em EMNLP}, 2025.
+
+\bibitem{strouse2018learning}
+DJ~Strouse, Max Kleiman-Weiner, Josh Tenenbaum, Matt Botvinick, and David~J. Schwab.
+\newblock Learning to share and hide intentions using information regularization.
+\newblock In {\em NeurIPS}, 2018.
+
+\bibitem{eysenbach2019diversity}
+Benjamin Eysenbach, Abhishek Gupta, Julian Ibarz, and Sergey Levine.
+\newblock Diversity is all you need: Learning skills without a reward function.
+\newblock In {\em ICLR}, 2019.
+
+\bibitem{ziebart2008maximum}
+Brian~D. Ziebart, Andrew~L. Maas, J.~Andrew Bagnell, and Anind~K. Dey.
+\newblock Maximum entropy inverse reinforcement learning.
+\newblock In {\em AAAI}, 2008.
+
+\bibitem{baker2017rational}
+Chris~L. Baker, Julian Jara-Ettinger, Rebecca Saxe, and Joshua~B. Tenenbaum.
+\newblock Rational quantitative attribution of beliefs, desires and percepts in human mentalizing.
+\newblock {\em Nature Human Behaviour}, 1(4):0064, 2017.
+
+\bibitem{faria2024guess}
+Miguel Faria, Francisco~S. Melo, and Ana Paiva.
+\newblock ``Guess what I'm doing'': Extending legibility to sequential decision tasks.
+\newblock {\em Artificial Intelligence}, 330:104107, 2024.
+
+\bibitem{miura2021unifying}
+Shuwa Miura and Shlomo Zilberstein.
+\newblock A unifying framework for observer-aware planning and its complexity.
+\newblock In {\em UAI}, 2021.
+
+\bibitem{miura2024observer}
+Shuwa Miura and Shlomo Zilberstein.
+\newblock Observer-aware planning with implicit and explicit communication.
+\newblock In {\em AAMAS}, 2024.
+
+\bibitem{liu2025active}
+Yanyu Liu, Yinghui Pan, Yifeng Zeng, Biyang Ma, and Prashant Doshi.
+\newblock Active legibility in multiagent reinforcement learning.
+\newblock {\em Artificial Intelligence}, 346:104357, 2025.
+
+\bibitem{jaques2019social}
+Natasha Jaques, Angeliki Lazaridou, Edward Hughes, Caglar Gulcehre, Pedro~A. Ortega, DJ~Strouse, Joel~Z. Leibo, and Nando de~Freitas.
+\newblock Social influence as intrinsic motivation for multi-agent deep reinforcement learning.
+\newblock In {\em ICML}, 2019.
+
+\bibitem{eccles2019biases}
+Tom Eccles, Yoram Bachrach, Guy Lever, Angeliki Lazaridou, and Thore Graepel.
+\newblock Biases for emergent communication in multi-agent reinforcement learning.
+\newblock In {\em NeurIPS}, 2019.
+
+\bibitem{bard}
+Jakob~N. Foerster, Francis Song, Edward Hughes, Neil Burch, Iain Dunning, Shimon Whiteson, Matthew Botvinick, and Michael Bowling.
+\newblock Bayesian action decoder for deep multi-agent reinforcement learning.
+\newblock In {\em ICML}, 2019.
+
+\bibitem{obl}
+Hengyuan Hu, Adam Lerer, Brandon Cui, Luis Pineda, Noam Brown, and Jakob Foerster.
+\newblock Off-belief learning.
+\newblock In {\em ICML}, 2021.
+
+\bibitem{foerster2016learning}
+Jakob Foerster, Ioannis~Alexandros Assael, Nando de~Freitas, and Shimon Whiteson.
+\newblock Learning to communicate with deep multi-agent reinforcement learning.
+\newblock In {\em NeurIPS}, 2016.
+
+\bibitem{sukhbaatar2016learning}
+Sainbayar Sukhbaatar, Arthur Szlam, and Rob Fergus.
+\newblock Learning multiagent communication with backpropagation.
+\newblock In {\em NeurIPS}, 2016.
+
+\bibitem{boldt2024review}
+Brendon Boldt and David Mortensen.
+\newblock A review of the applications of deep learning-based emergent communication.
+\newblock {\em TMLR}, 2024.
+
+\bibitem{zaslavsky2021rate}
+Noga Zaslavsky, Jennifer Hu, and Roger~P. Levy.
+\newblock A rate-distortion view of human pragmatic reasoning.
+\newblock In {\em SCiL}, 2021.
+
+\bibitem{andreas2016reasoning}
+Jacob Andreas and Dan Klein.
+\newblock Reasoning about pragmatics with neural listeners and speakers.
+\newblock In {\em EMNLP}, 2016.
+
+\bibitem{fried2018unified}
+Daniel Fried, Jacob Andreas, and Dan Klein.
+\newblock Unified pragmatic models for generating and following instructions.
+\newblock In {\em NAACL-HLT}, 2018.
+
+\bibitem{haarnoja2018soft}
+Tuomas Haarnoja, Aurick Zhou, Pieter Abbeel, and Sergey Levine.
+\newblock Soft actor-critic: Off-policy maximum entropy deep reinforcement learning with a stochastic actor.
+\newblock In {\em ICML}, 2018.
+
+\bibitem{levine2018reinforcement}
+Sergey Levine.
+\newblock Reinforcement learning and control as probabilistic inference: Tutorial and review.
+\newblock {\em arXiv:1805.00909}, 2018.
+
+\bibitem{barber2003im}
+David Barber and Felix Agakov.
+\newblock The IM algorithm: A variational approach to information maximization.
+\newblock In {\em NeurIPS}, 2003.
+
+\bibitem{lowe2017multi}
+Ryan Lowe, Yi~Wu, Aviv Tamar, Jean Harb, Pieter Abbeel, and Igor Mordatch.
+\newblock Multi-agent actor-critic for mixed cooperative-competitive environments.
+\newblock In {\em NeurIPS}, 2017.
+
+\bibitem{sokota2022communicating}
+Samuel Sokota, Christian~A. Schroeder~de Witt, Maximilian Igl, Luisa~M. Zintgraf, Philip Torr, Martin Strohmeier, Zico Kolter, Shimon Whiteson, and Jakob Foerster.
+\newblock Communicating via Markov decision processes.
+\newblock In {\em ICML}, 2022.
+
+\bibitem{ho2016showing}
+Mark~K. Ho, Michael Littman, James MacGlashan, Fiery Cushman, and Joseph~L. Austerweil.
+\newblock Showing versus doing: Teaching by demonstration.
+\newblock In {\em NeurIPS}, 2016.
+
+\bibitem{fisac2017pragmatic}
+Jaime~F. Fisac, Monica~A. Gates, Jessica~B. Hamrick, Chang Liu, Dylan Hadfield-Menell, Malayandi Palaniappan, Dhruv Malik, S.~Shankar Sastry, Thomas~L. Griffiths, and Anca~D. Dragan.
+\newblock Pragmatic-pedagogic value alignment.
+\newblock In {\em ISRR}, 2017.
+
+\bibitem{busch2017learning}
+Baptiste Busch, Jonathan Grizou, Manuel Lopes, and Freek Stulp.
+\newblock Learning legible motion from human--robot interactions.
+\newblock {\em Int.\ J.\ Social Robotics}, 9(5):765--779, 2017.
+
+\bibitem{bied2020integrating}
+Manuel Bied and Mohamed Chetouani.
+\newblock Integrating an observer in interactive reinforcement learning to learn legible trajectories.
+\newblock In {\em RO-MAN}, 2020.
+
+\bibitem{persiani2022policy}
+Michele Persiani and Thomas Hellström.
+\newblock Policy regularization for legible behavior.
+\newblock {\em Neural Computing and Applications}, 35:16781--16790, 2023.
+
+\bibitem{wallkotter2022slotv}
+Sebastian Wallk{\"o}tter, Mohamed Chetouani, and Ginevra Castellano.
+\newblock {SLOT-V}: Supervised learning of observer models for legible robot motion planning.
+\newblock In {\em RO-MAN}, 2022.
+
+\bibitem{kim2021communication}
+Woojun Kim, Jongeui Park, and Youngchul Sung.
+\newblock Communication in multi-agent reinforcement learning: Intention sharing.
+\newblock In {\em ICLR}, 2021.
+
+\bibitem{mirsky2022survey}
+Reuth Mirsky, Ignacio Carlucho, Arrasy Rahman, Elliot Fosong, William Macke, Mohan Sridharan, Peter Stone, and Stefano~V. Albrecht.
+\newblock A survey of ad hoc teamwork research.
+\newblock In {\em EUMAS}, 2022.
+
+\bibitem{tian2020implicit}
+Zheng Tian, Shihao Zou, Ian Davies, Tim Warr, Lisheng Wu, Haitham~Bou Ammar, and Jun Wang.
+\newblock Learning to communicate implicitly by actions.
+\newblock In {\em AAAI}, 2020.
+
+\bibitem{kang2020pragmatic}
+Yipeng Kang, Tonghan Wang, and Gerard de~Melo.
+\newblock Incorporating pragmatic reasoning communication into emergent language.
+\newblock In {\em NeurIPS}, 2020.
+
+\bibitem{knepper2017implicit}
+Ross~A. Knepper, Christoforos~I. Mavrogiannis, Julia Proft, and Claire Liang.
+\newblock Implicit communication in a joint action.
+\newblock In {\em HRI}, 2017.
+
+\bibitem{monroe2015learning}
+Will Monroe and Christopher Potts.
+\newblock Learning in the rational speech acts model.
+\newblock In {\em Amsterdam Colloquium}, 2015.
+
+\end{thebibliography}
+
+\end{document}
