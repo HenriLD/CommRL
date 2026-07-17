@@ -178,8 +178,8 @@ Learned $\Ltheta$ & $0.828\pm.015$ & $-15\%$ & $.853$ \\
 Learned $+$ RSA ($n{=}8$) & $0.863\pm.008$ & $16\%$ & $.856$ \\
 Bounded $+$ RSA, $\lambda{=}0.6$ ($n{=}16$) & $0.884\pm.006$ & $35\%$ & $.861$ \\
 \midrule
-Info-reg.\ \cite{strouse2018learning} ($n{=}8$) & TBDIR & TBDIRC & TBDIRK \\
-Partner belief \cite{tian2020implicit} ($n{=}8$) & TBDPB & TBDPBC & TBDPBK \\
+Info-reg.\ \cite{strouse2018learning} ($n{=}8$) & $0.883\pm.011$ & $34\%$ & $.856$ \\
+Partner belief \cite{tian2020implicit} ($n{=}8$) & $0.852\pm.016$ & $6\%$ & $.856$ \\
 \midrule
 Ear ($\lambda{=}0$, $n{=}6$) & $0.874\pm.016$ & $26\%$ & $.854$ \\
 Ear $+$ $\Rcomm$ & $0.878\pm.012$ & $30\%$ & $.858$ \\
@@ -203,7 +203,7 @@ Table~\ref{tab:scout} and Figure~\ref{fig:forest} summarize Environment A at the
 
 \textbf{A too-competent listener exerts no pressure.} Trained to convergence, the full-context $\Ltheta$ decodes the scout at $97\%$ \emph{whatever the scout does}: its reward saturates near the $\log 3$ ceiling, and the speaker-side learned condition ends below baseline ($0.828$, $-15\%$). Deployed instead as the supporter's \emph{ear}, the same listener recovers $30\%$ ($t=2.15$, $p\approx.05$, suggestive): with a saturated listener, the value is in the decoding, none in the speaking. Combining a hand-crafted reward with its ear matches the reward alone---once the speaker signals overtly, the equipped ear is redundant.
 
-\textbf{External baselines.} EXTBASELINETEXT
+\textbf{External baselines, head-to-head.} We run the two closest prior reward designs under the frozen recipe ($\lambda{=}0.3$, VOI, 8 seeds, 400 cycles). The partner-belief reward in the style of Tian et al.~\cite{tian2020implicit}---a decoder over the supporter's own observation---lands at baseline parity ($0.852\pm.016$, $6\%$ closure, n.s.), with a small commitment gain ($.856$): fixing the audience to the actual partner's information state is exactly the saturating choice our analysis warns against, since the reward tracks a decoder that converges alongside the partner itself. The information-regularization reward in the style of Strouse et al.~\cite{strouse2018learning}---$\log q_1(m|s,a) - \log q_0(m|s)$---closes $34\%$ ($0.883\pm.011$, $t=2.6$, suggestive), statistically indistinguishable from our bounded$+$RSA recipe ($35\%$), and for a principled reason: subtracting the state decoder removes the contextual shortcut \emph{by construction}, implementing the viewpoint bound by subtraction where RSA implements it by contrast. The field's best learned-family reward and ours thus occupy the same band---and both trail the vocabulary-restricted hand-crafted listeners by a factor of two, which is the audience-matching principle's second clause made quantitative.
 
 \subsubsection{Bounding the Learned Listener}
 \label{ssec:results_bounded}
