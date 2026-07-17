@@ -45,8 +45,11 @@ RAMP_END = 160.0      # merge (or exit) must happen before this x
 
 HIST_LEN = 6
 
-W_PROGRESS = 0.05
+W_PROGRESS = 0.1
 W_HARSH = 0.3
+W_FUEL = 0.08         # per-step cost of listener speed deviation: makes
+                      # unconditional gap-opening dominated by targeted,
+                      # inference-driven opening (gate iteration 4)
 MERGE_BONUS = 12.0
 EXIT_BONUS = 4.0
 FAIL_PENALTY = 4.0
@@ -182,8 +185,9 @@ class HighwayMergeEnv:
         crowd = (F.relu(1.0 - (self.lead - self.x[:, 1] - CAR_LEN) / 2.0)
                  + F.relu(1.0 - (self.x[:, 1] - self.x[:, 2] - CAR_LEN) / 2.0))
         tailgate = W_TAILGATE * crowd
+        fuel = W_FUEL * accel[:, 1:].abs().sum(dim=1)
 
-        r = prog + bonus + exit_b - harsh - fail - coll - tailgate
+        r = prog + bonus + exit_b - harsh - fail - coll - tailgate - fuel
         self.t += 1
         done = self.t >= EPISODE_LEN
         success = torch.where(is_exit, self.exited, self.merged)
