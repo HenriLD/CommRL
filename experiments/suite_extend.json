@@ -1,0 +1,192 @@
+[
+ {
+  "name": "exclusivity_s3",
+  "args": [
+   "--condition",
+   "exclusivity",
+   "--seed",
+   "3",
+   "--lam",
+   "0.3",
+   "--cycles",
+   "400",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "exclusivity_s4",
+  "args": [
+   "--condition",
+   "exclusivity",
+   "--seed",
+   "4",
+   "--lam",
+   "0.3",
+   "--cycles",
+   "400",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "exclusivity_s5",
+  "args": [
+   "--condition",
+   "exclusivity",
+   "--seed",
+   "5",
+   "--lam",
+   "0.3",
+   "--cycles",
+   "400",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "exclusivity_s6",
+  "args": [
+   "--condition",
+   "exclusivity",
+   "--seed",
+   "6",
+   "--lam",
+   "0.3",
+   "--cycles",
+   "400",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "exclusivity_s7",
+  "args": [
+   "--condition",
+   "exclusivity",
+   "--seed",
+   "7",
+   "--lam",
+   "0.3",
+   "--cycles",
+   "400",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "learned_prag_s3",
+  "args": [
+   "--condition",
+   "learned_prag",
+   "--seed",
+   "3",
+   "--lam",
+   "0.3",
+   "--cycles",
+   "400",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "learned_prag_s4",
+  "args": [
+   "--condition",
+   "learned_prag",
+   "--seed",
+   "4",
+   "--lam",
+   "0.3",
+   "--cycles",
+   "400",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "learned_prag_s5",
+  "args": [
+   "--condition",
+   "learned_prag",
+   "--seed",
+   "5",
+   "--lam",
+   "0.3",
+   "--cycles",
+   "400",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "learned_prag_s6",
+  "args": [
+   "--condition",
+   "learned_prag",
+   "--seed",
+   "6",
+   "--lam",
+   "0.3",
+   "--cycles",
+   "400",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "learned_prag_s7",
+  "args": [
+   "--condition",
+   "learned_prag",
+   "--seed",
+   "7",
+   "--lam",
+   "0.3",
+   "--cycles",
+   "400",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ }
+]

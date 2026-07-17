@@ -1,0 +1,287 @@
+[
+ {
+  "name": "p_l01_v02_s0",
+  "args": [
+   "--condition",
+   "progress",
+   "--seed",
+   "0",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.1",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "p_l01_v02_s1",
+  "args": [
+   "--condition",
+   "progress",
+   "--seed",
+   "1",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.1",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "p_l01_v02_s2",
+  "args": [
+   "--condition",
+   "progress",
+   "--seed",
+   "2",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.1",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "p_l01_v10_s0",
+  "args": [
+   "--condition",
+   "progress",
+   "--seed",
+   "0",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.1",
+   "--voi",
+   "1.0",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "p_l01_v10_s1",
+  "args": [
+   "--condition",
+   "progress",
+   "--seed",
+   "1",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.1",
+   "--voi",
+   "1.0",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "p_l01_v10_s2",
+  "args": [
+   "--condition",
+   "progress",
+   "--seed",
+   "2",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.1",
+   "--voi",
+   "1.0",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "p_l03_v10_s0",
+  "args": [
+   "--condition",
+   "progress",
+   "--seed",
+   "0",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.3",
+   "--voi",
+   "1.0",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "p_l03_v10_s1",
+  "args": [
+   "--condition",
+   "progress",
+   "--seed",
+   "1",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.3",
+   "--voi",
+   "1.0",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "p_l03_v10_s2",
+  "args": [
+   "--condition",
+   "progress",
+   "--seed",
+   "2",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.3",
+   "--voi",
+   "1.0",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "p_l06_v02_s0",
+  "args": [
+   "--condition",
+   "progress",
+   "--seed",
+   "0",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.6",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "p_l06_v02_s1",
+  "args": [
+   "--condition",
+   "progress",
+   "--seed",
+   "1",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.6",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "p_l06_v02_s2",
+  "args": [
+   "--condition",
+   "progress",
+   "--seed",
+   "2",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.6",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "p_l06_v10_s0",
+  "args": [
+   "--condition",
+   "progress",
+   "--seed",
+   "0",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.6",
+   "--voi",
+   "1.0",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "p_l06_v10_s1",
+  "args": [
+   "--condition",
+   "progress",
+   "--seed",
+   "1",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.6",
+   "--voi",
+   "1.0",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "p_l06_v10_s2",
+  "args": [
+   "--condition",
+   "progress",
+   "--seed",
+   "2",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.6",
+   "--voi",
+   "1.0",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ }
+]
