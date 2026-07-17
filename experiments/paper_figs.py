@@ -53,6 +53,13 @@ def fig_forest(figdir):
     add("Exclusivity $L_0$", RS3, "exclusivity", "baseline", "oracle", COLORS["exclusivity"])
     add("Ear + $R_{comm}$", RS3, "learned_ear", "baseline", "oracle", COLORS["learned_ear"])
     add("Ear ($\\lambda{=}0$)", RS3, "ear", "baseline", "oracle", COLORS["ear"])
+    # bounded learned + RSA at matched weight: pooled selection + confirmation
+    # seeds (n=16), against the scout3 baseline/oracle anchors
+    p16 = seed_means("results_levers", "lam06_learned_pre_prag")
+    b0, o0 = seed_means(RS3, "baseline"), seed_means(RS3, "oracle")
+    m, (lo, hi) = closure_ci(p16, b0, o0)
+    rows.append(("Bounded $L_\\theta$ + RSA ($\\lambda{=}.6$)", m, lo, hi,
+                 COLORS["learned_prag"]))
     add("Learned $L_\\theta$ (speaker only)", RS3, "learned", "baseline", "oracle", COLORS["learned"])
     # blind control: gain under blinding, scaled by the blind premium
     # (blind oracle - blind baseline), i.e. the same normalization every
