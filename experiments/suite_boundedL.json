@@ -1,0 +1,458 @@
+[
+{
+"name": "learned_act_s0",
+"args": [
+"--condition",
+"learned_act",
+"--seed",
+"0",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "learned_act_s1",
+"args": [
+"--condition",
+"learned_act",
+"--seed",
+"1",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "learned_act_s2",
+"args": [
+"--condition",
+"learned_act",
+"--seed",
+"2",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "learned_act_s3",
+"args": [
+"--condition",
+"learned_act",
+"--seed",
+"3",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "learned_act_s4",
+"args": [
+"--condition",
+"learned_act",
+"--seed",
+"4",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "learned_act_s5",
+"args": [
+"--condition",
+"learned_act",
+"--seed",
+"5",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "learned_act_s6",
+"args": [
+"--condition",
+"learned_act",
+"--seed",
+"6",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "learned_act_s7",
+"args": [
+"--condition",
+"learned_act",
+"--seed",
+"7",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "learned_act_prag_s0",
+"args": [
+"--condition",
+"learned_act_prag",
+"--seed",
+"0",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "learned_act_prag_s1",
+"args": [
+"--condition",
+"learned_act_prag",
+"--seed",
+"1",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "learned_act_prag_s2",
+"args": [
+"--condition",
+"learned_act_prag",
+"--seed",
+"2",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "learned_act_prag_s3",
+"args": [
+"--condition",
+"learned_act_prag",
+"--seed",
+"3",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "learned_act_prag_s4",
+"args": [
+"--condition",
+"learned_act_prag",
+"--seed",
+"4",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "learned_act_prag_s5",
+"args": [
+"--condition",
+"learned_act_prag",
+"--seed",
+"5",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "learned_act_prag_s6",
+"args": [
+"--condition",
+"learned_act_prag",
+"--seed",
+"6",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "learned_act_prag_s7",
+"args": [
+"--condition",
+"learned_act_prag",
+"--seed",
+"7",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "learned_act_ear_s0",
+"args": [
+"--condition",
+"learned_act_ear",
+"--seed",
+"0",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "learned_act_ear_s1",
+"args": [
+"--condition",
+"learned_act_ear",
+"--seed",
+"1",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "learned_act_ear_s2",
+"args": [
+"--condition",
+"learned_act_ear",
+"--seed",
+"2",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "learned_act_ear_s3",
+"args": [
+"--condition",
+"learned_act_ear",
+"--seed",
+"3",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "learned_act_ear_s4",
+"args": [
+"--condition",
+"learned_act_ear",
+"--seed",
+"4",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "learned_act_ear_s5",
+"args": [
+"--condition",
+"learned_act_ear",
+"--seed",
+"5",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "learned_act_ear_s6",
+"args": [
+"--condition",
+"learned_act_ear",
+"--seed",
+"6",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+},
+{
+"name": "learned_act_ear_s7",
+"args": [
+"--condition",
+"learned_act_ear",
+"--seed",
+"7",
+"--cycles",
+"400",
+"--lam",
+"0.3",
+"--voi",
+"0.2",
+"--device",
+"cuda",
+"--threads",
+"2"
+]
+}
+]

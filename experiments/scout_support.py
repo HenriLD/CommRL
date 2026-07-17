@@ -280,18 +280,31 @@ def scout_comm_reward(env, actions_true, kind, temp=5.0, n_samples=64, n_iter=1,
 
 
 class ScoutListener(nn.Module):
-    """L_theta(m | s, a) for the scout: private meaning blocks masked."""
+    """L_theta(m | ., a) for the scout.
 
-    def __init__(self, hidden=128):
+    inputs='full': the whole observation (private blocks masked) + action.
+    Competent enough to decode any behavior from context -- saturates.
+    inputs='act':  only the action and the site bearings from the scout's
+    position -- the at-a-glance viewpoint of an audience. Task-driven motion
+    toward the waypoint is uninformative under this listener, so the reward
+    retains gradient: this is the bounded literal listener RSA prescribes,
+    learned rather than hand-crafted.
+    """
+
+    def __init__(self, hidden=128, inputs="full"):
         super().__init__()
+        self.inputs = inputs
+        in_dim = OBS_DIM + ACT_DIM if inputs == "full" else 2 * N_SITES + ACT_DIM
         self.net = nn.Sequential(
-            nn.Linear(OBS_DIM + ACT_DIM, hidden), nn.ReLU(),
+            nn.Linear(in_dim, hidden), nn.ReLU(),
             nn.Linear(hidden, hidden), nn.ReLU(),
             nn.Linear(hidden, N_MEANINGS),
         )
 
-    @staticmethod
-    def features(obs, actions):
+    def features(self, obs, actions):
+        if self.inputs == "act":
+            site_rel = obs[..., 6 + N_MEANINGS: 6 + 3 * N_MEANINGS]
+            return torch.cat([site_rel, actions], dim=-1)
         x = obs.clone()
         x[..., PREF_SLICE] = 0.0
         x[..., PARTNER_PREF_SLICE] = 0.0

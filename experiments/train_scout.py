@@ -86,7 +86,8 @@ def main():
     p.add_argument("--condition", required=True,
                    choices=["baseline", "oracle", "simple", "exclusivity",
                             "progress", "filter", "learned", "learned_prag",
-                            "ear", "learned_ear", "filter_ear"])
+                            "ear", "learned_ear", "filter_ear",
+                            "learned_act", "learned_act_prag", "learned_act_ear"])
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--lam", type=float, default=0.1)
     p.add_argument("--cycles", type=int, default=150)
@@ -121,8 +122,11 @@ def main():
     os.makedirs(args.outdir, exist_ok=True)
 
     lam = 0.0 if args.condition in ("baseline", "oracle", "ear") else args.lam
-    use_listener = args.condition in ("learned", "learned_prag", "ear", "learned_ear")
-    ear = args.condition in ("ear", "learned_ear", "filter_ear")
+    use_listener = args.condition in ("learned", "learned_prag", "ear", "learned_ear",
+                                      "learned_act", "learned_act_prag",
+                                      "learned_act_ear")
+    listener_inputs = "act" if args.condition.startswith("learned_act") else "full"
+    ear = args.condition in ("ear", "learned_ear", "filter_ear", "learned_act_ear")
 
     env = S.ScoutSupportEnv(args.n_envs, oracle=(args.condition == "oracle"),
                             seed=args.seed, blind=args.blind)
@@ -138,7 +142,7 @@ def main():
     opt_alpha = torch.optim.Adam([log_alpha], lr=args.lr)
     target_entropy = -float(S.ACT_DIM)
 
-    listener = S.ScoutListener().to(device) if use_listener else None
+    listener = S.ScoutListener(inputs=listener_inputs).to(device) if use_listener else None
     opt_l = torch.optim.Adam(listener.parameters(), lr=1e-3) if use_listener else None
 
     buf = ReplayBuffer(400_000, device, n_agents=S.N_AGENTS,
@@ -198,7 +202,7 @@ def main():
                     opt_l.zero_grad(); l_loss.backward(); opt_l.step()
                     if lam > 0:
                         with torch.no_grad():
-                            if args.condition == "learned_prag":
+                            if args.condition in ("learned_prag", "learned_act_prag"):
                                 alt = torch.rand((args.batch, 16, 2),
                                                  device=device) * 2 - 1
                                 rc = listener.comm_reward(b_obs[:, 0], b_act[:, 0],
@@ -255,7 +259,8 @@ def main():
                 json.dump({"args": vars(args), "history": history}, f, indent=1)
 
     torch.save({"actor": actor.state_dict(),
-                "listener": listener.state_dict() if listener else None},
+                "listener": listener.state_dict() if listener else None,
+                "listener_inputs": listener_inputs if listener else None},
                os.path.join(args.outdir, "model.pt"))
     print(f"DONE {args.condition} seed {args.seed} in {(time.time()-t0)/60:.1f} min")
 
