@@ -56,9 +56,9 @@ This work studies an intrinsic reward $\Rcomm$ for communicative clarity. To com
 \section{Related Work}
 \label{sec:related}
 
-\textbf{Legibility and observer-aware rewards.} Legibility inverts goal inference \cite{ziebart2008maximum,baker2017rational}: the actor shapes its behavior so an observer's inference succeeds. Formalized for robot motion \cite{dragan2013legibility}, it has been extended to sequential decision problems \cite{faria2024guess}, observer-aware MDPs \cite{miura2021unifying,miura2024observer}, and MARL \cite{liu2025active}. A complementary line uses observer models as reward signals inside RL: policy search against human observers \cite{busch2017learning}, observer-in-the-loop shaping \cite{bied2020integrating}, legibility-regularized policies \cite{persiani2022policy}, and supervised observer models \cite{wallkotter2022slotv}; Bayesian pedagogy reaches the same mechanism from teaching \cite{ho2016showing,fisac2017pragmatic}. Relative to this body of work, our contributions are the Max-Ent/RSA derivation, a systematic study of \emph{which listener} should anchor the reward---the question prior work fixes by assumption---and the oracle-gap protocol.
+\textbf{Legibility and observer-aware rewards.} Legibility inverts goal inference \cite{ziebart2008maximum,baker2017rational,ramirez2010plan}: the actor shapes its behavior so an observer's inference succeeds. Formalized for robot motion \cite{dragan2013legibility}, it extends to sequential tasks---including goal-posterior rewards built by Boltzmann-inverting per-goal optimal values \cite{faria2024guess}, the construction our inverse-planning listener ports to deep MARL---to observer-aware MDPs \cite{miura2021unifying,miura2024observer}, and to multiagent RL via belief-gain shaping \cite{liu2025active}. Observer models as reward signals inside RL likewise have precedent: policy search against human observers \cite{busch2017learning}, observer-in-the-loop shaping with a small comparison of observer strategies \cite{bied2020integrating}, log-posterior regularization against frozen pretrained Q-functions \cite{persiani2022policy}, and supervised observer models \cite{wallkotter2022slotv}; goal-recognition design pursues the same early-recognizability objective by modifying \emph{environments} instead \cite{keren2014goal}. Bayesian pedagogy reaches the mechanism from teaching \cite{ho2016showing,fisac2017pragmatic}, with cooperative inverse RL's pedagogic equilibria as its game-theoretic form \cite{hadfieldmenell2016cooperative} and behavior-as-evidence unified by reward-rational choice \cite{jeon2020reward}; notably, Milli and Dragan analyze---on the learner's side---whether to assume a literal or pedagogic partner \cite{milli2019literal}, the model-choice question we pose on the reward side. Relative to this body of work, our contributions are the Max-Ent/RSA derivation, the first \emph{systematic} listener-choice study in deep MARL under a certified-premium protocol, and the boundary map: the individual listener constructions have precedents, which we measure head-to-head rather than re-invent.
 
-\textbf{Intrinsic rewards for coordination.} The closest existing mechanism to $\Rcomm$ is the auxiliary reward of Tian et al.~\cite{tian2020implicit}, which pays an agent for its partner's correct belief about private information transmitted through actions; they fix the audience to the partner's own inference network---one point in the listener space we sweep, and one our saturation analysis predicts loses shaping power exactly when the partner learns to decode. We evaluate this design head-to-head (Sec.~\ref{ssec:results_scout}). Strouse et al.~\cite{strouse2018learning} regularize the conditional information $I(A;G|S)$; we evaluate a variational instantiation of this too. Social influence \cite{jaques2019social} rewards \emph{compelling} a partner's reaction, whereas $\Rcomm$ rewards transmission, leaving teammates free to exploit or ignore the revealed intention. Bayesian action decoding and off-belief learning \cite{bard,obl} control how much agents may read into partners' actions; we directly reward making the intended reading easy. Cross-play evaluations connect to ad-hoc teamwork \cite{mirsky2022survey}.
+\textbf{Intrinsic rewards for coordination.} The closest existing mechanism to $\Rcomm$ is the auxiliary reward of Tian et al.~\cite{tian2020implicit}, which pays an agent for its partner's correct belief about private information transmitted through actions; they fix the audience to the partner's own inference network---one point in the listener space we sweep, and one our saturation analysis predicts loses shaping power exactly when the partner learns to decode. We evaluate this design head-to-head (Sec.~\ref{ssec:results_scout}). Strouse et al.~\cite{strouse2018learning} regularize the conditional information $I(A;G|S)$; we evaluate a variational instantiation of this too. Social influence \cite{jaques2019social} rewards \emph{compelling} a partner's reaction, whereas $\Rcomm$ rewards transmission, leaving teammates free to exploit or ignore the revealed intention. In Hanabi, the Bayesian action decoder's public belief lets agents \emph{act informatively} because they know they will be decoded---informativeness emerging from task reward under shared belief machinery rather than being rewarded directly \cite{bard}; SAD simplifies that machinery \cite{sad}; off-belief learning grounds interpretation in a non-communicative base policy to keep conventions cross-play-safe \cite{obl}; and theory-of-mind intrinsic rewards for sharing private knowledge exist on the hint channel \cite{fuchs2021theory,oguntola2023theory}. Our inverse-planning listener (Sec.~\ref{ssec:listeners}) is the \emph{speaker-side dual} of off-belief learning's grounding move: OBL anchors the listener's belief in a frozen non-communicative policy, we anchor the reward's listener in one. Cross-play evaluations connect to ad-hoc teamwork \cite{mirsky2022survey}.
 
 \textbf{Implicit communication.} Much MARL research equips agents with an explicit channel \cite{foerster2016learning,sukhbaatar2016learning,kim2021communication,boldt2024review}. We study \emph{implicit} communication \cite{knepper2017implicit}: the action is the signal. Sokota et al.~\cite{sokota2022communicating} encode messages into trajectories via minimum-entropy coupling atop a max-ent policy, targeting a chosen bit-rate; our reward asks for legibility of the task-relevant private state only insofar as it pays, with no coupling machinery at execution.
 
@@ -92,12 +92,13 @@ S_k(a|m) = \frac{L_{k-1}(m|a,s)}{\sum_{a'\in\mathcal{A}} L_{k-1}(m|a',s)}, \quad
 L_k(m|a) = \frac{S_k(a|m)}{\sum_{m'} S_k(a|m')},
 \label{eq:rsa_recursion}
 \end{equation}
-and $L^* = L_{N_r}$. Because the alternative set is sampled, $\Rcomm$ is stochastic; when alternatives are policy-drawn or $L_0$ co-adapts, it is additionally policy-dependent, and the Bellman analysis below holds per reward snapshot, as for other co-adaptive intrinsic rewards \cite{eysenbach2019diversity}. We study four hand-crafted instantiations and a learned family.
+and $L^* = L_{N_r}$. Because the alternative set is sampled, $\Rcomm$ is stochastic; when alternatives are policy-drawn or $L_0$ co-adapts, it is additionally policy-dependent, and the Bellman analysis below holds per reward snapshot, as for other co-adaptive intrinsic rewards \cite{eysenbach2019diversity}. We study four hand-crafted instantiations, a co-adapting learned family, and a frozen inverse-planning family.
 
 \textbf{(i) Direction listeners} score actions by cosine similarity to the ideal direction $v_m$ toward the target consistent with $m$ (\emph{simple}), optionally penalizing similarity to competing meanings (\emph{exclusivity}: $s = \alpha_{\text{temp}}(\cos(a,v_m) - \max_{m'\neq m}\cos(a,v_{m'}))$).
 \textbf{(ii) The progress listener} scores the per-step reduction in distance to each candidate target, mirroring cost-to-go legibility \cite{dragan2013legibility}.
 \textbf{(iii) The filter listener} maintains a recursive belief $b_t(m) \propto b_{t-1}(m)^{\rho} e^{\alpha_{\text{temp}}\cos(a_t, v_m)}$ with exponential forgetting, rewarding $\log b_t(m_t) + \log|\mathcal{M}|$---explicitly non-Markovian.
 \textbf{(iv) Learned listeners} $\Ltheta(m|s,a)$ are trained by maximum likelihood on replayed transitions (private state masked from the input), so the common ground co-adapts and the reward credits only distinctions present in the current behavioral distribution. We also study \emph{bounded} variants restricted to the audience's viewpoint (site bearings and action only) and to the pre-commitment window (Sec.~\ref{ssec:results_bounded}), with $N_r \ge 1$ adding contrastive reasoning on top.
+\textbf{(v) The inverse-planning listener (IPL)} ports the classical Boltzmann goal-inference observer \cite{baker2017rational,ramirez2010plan}---used as a legibility reward by Faria et al.\ via per-goal optimal values \cite{faria2024guess} and as a regularizer against frozen pretrained $Q$-functions by Persiani and Hellstr{\"o}m \cite{persiani2022policy}---to deep MARL with no model, plan, or hand-cost: $L_0(m|s,a) \propto \exp(-\|a - \tanh\mu_{\text{ref}}(s,m)\|^2 / 2\kappa^2)$, where $\pi_{\text{ref}}$ is a \emph{frozen, seed-disjoint, non-communicative} goal-conditioned baseline policy (the task's own literal speaker $S_0$, obtained from self-play) and $\kappa$ is the single soft-rationality tolerance. Freezing makes the reward stationary and closes the co-adaptation route to saturation; the semantics are human-readable---``which goal would make this action likely for a plain task-optimal agent?''---and any goal-relevant statistic (such as distance to each candidate destination) enters only insofar as the reference policy itself encodes it.
 
 \subsection{Two Propositions}
 \label{ssec:theory}
@@ -623,6 +624,41 @@ Ryan Lowe, Jakob Foerster, Y-Lan Boureau, Joelle Pineau, and Yann Dauphin.
 Han Wang, Binbin Chen, Tieying Zhang, and Baoxiang Wang.
 \newblock Learning to communicate through implicit communication channels.
 \newblock In {\em ICLR}, 2025.
+
+\bibitem{ramirez2010plan}
+Miquel Ram{\'\i}rez and Hector Geffner.
+\newblock Probabilistic plan recognition using off-the-shelf classical planners.
+\newblock In {\em AAAI}, 2010.
+
+\bibitem{keren2014goal}
+Sarah Keren, Avigdor Gal, and Erez Karpas.
+\newblock Goal recognition design.
+\newblock In {\em ICAPS}, 2014.
+
+\bibitem{hadfieldmenell2016cooperative}
+Dylan Hadfield-Menell, Anca~D. Dragan, Pieter Abbeel, and Stuart Russell.
+\newblock Cooperative inverse reinforcement learning.
+\newblock In {\em NeurIPS}, 2016.
+
+\bibitem{jeon2020reward}
+Hong~Jun Jeon, Smitha Milli, and Anca~D. Dragan.
+\newblock Reward-rational (implicit) choice: A unifying formalism for reward learning.
+\newblock In {\em NeurIPS}, 2020.
+
+\bibitem{milli2019literal}
+Smitha Milli and Anca~D. Dragan.
+\newblock Literal or pedagogic human? Analyzing human model misspecification in objective learning.
+\newblock In {\em UAI}, 2019.
+
+\bibitem{fuchs2021theory}
+Andrew Fuchs, Michael Walton, Theresa Chadwick, and Doug Lange.
+\newblock Theory of mind for deep reinforcement learning in Hanabi.
+\newblock {\em arXiv:2101.09328}, 2021.
+
+\bibitem{oguntola2023theory}
+Ini Oguntola, Joseph Campbell, Simon Stepputtis, and Katia Sycara.
+\newblock Theory of mind as intrinsic motivation for multi-agent reinforcement learning.
+\newblock In {\em ICML Workshop on Theory of Mind in Communicating Agents}, 2023.
 
 \end{thebibliography}
 
