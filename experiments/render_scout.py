@@ -82,6 +82,23 @@ def main():
                                 lw=0.8, ls=(0, (2, 2)), alpha=0.55, zorder=2))
         draw_timed_path(ax, traj[:, 0], SCOUT_COLOR)
         draw_timed_path(ax, traj[:, 1], SUPPORT_COLOR)
+        # mark the supporter's commitment moment: first step from which its
+        # nearest site is the true target for the rest of the episode
+        sup = traj[:, 1]
+        d = np.linalg.norm(sup[:, None, :] - sites[None], axis=-1)
+        right = d.argmin(-1) == target
+        tc = len(right)
+        for i in range(len(right) - 1, -1, -1):
+            if right[i]:
+                tc = i
+            else:
+                break
+        if tc < len(right):
+            ax.plot(*sup[tc], marker="D", ms=7, color=SUPPORT_COLOR,
+                    mec="k", mew=0.8, zorder=6)
+            ax.annotate(f"commits $t{{=}}{tc}$", sup[tc], fontsize=7.0,
+                        xytext=(6, -11), textcoords="offset points",
+                        color="#222222", zorder=6)
         ax.set_title(label)
         ax.set_xlim(-1.58, 1.58); ax.set_ylim(-1.58, 1.58)
         ax.set_aspect("equal"); ax.set_xticks([]); ax.set_yticks([])

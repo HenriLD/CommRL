@@ -166,7 +166,9 @@ def main():
                      math.sqrt(sem(blind_p) ** 2 + sem(blind_b) ** 2), "#D55E00"))
     ys = np.arange(len(cats))[::-1]
     for y, (lab, g, e, c) in zip(ys, cats):
-        ax2.errorbar(g, y, xerr=e, fmt="o", ms=6.5, color=c, capsize=2.5, lw=1.4)
+        # 95% CI so "n.s." claims in the text match what the panel shows
+        ax2.errorbar(g, y, xerr=1.96 * e, fmt="o", ms=6.5, color=c,
+                     capsize=2.5, lw=1.4)
     ax2.axvline(0, color="#999999", lw=0.9, ls="--")
     ax2.set_yticks(ys)
     ax2.set_yticklabels([c[0] for c in cats], fontsize=7.2)

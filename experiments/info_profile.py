@@ -23,7 +23,7 @@ from train_masac import Actor
 from train_scout import inject_ear
 from paperstyle import use_style, LABELS, COLORS, REF_STYLE
 
-ORDER = ["baseline", "oracle", "filter", "learned", "learned_ear"]
+ORDER = ["baseline", "oracle", "progress", "filter", "learned", "learned_ear"]
 
 
 def collect(actor, listener, ear, n_envs, seed, deterministic):

@@ -76,6 +76,9 @@ def status(args):
 def _agg(outroot, cond, key):
     vals = []
     for p in sorted(glob.glob(os.path.join(outroot, f"{cond}_s*", "history.json"))):
+        # only completed runs: an in-flight run has history.json but no model.pt
+        if not os.path.exists(os.path.join(os.path.dirname(p), "model.pt")):
+            continue
         h = json.load(open(p))["history"][-3:]
         vals.append(np.mean([e[key] for e in h]))
     return np.array(vals)
@@ -85,7 +88,7 @@ def report(args):
     conds = defaultdict(int)
     for d in glob.glob(os.path.join(args.outroot, "*_s*")):
         name = os.path.basename(d)
-        if os.path.exists(os.path.join(d, "history.json")):
+        if os.path.exists(os.path.join(d, "model.pt")):
             conds[name.rsplit("_s", 1)[0]] += 1
     base = _agg(args.outroot, args.baseline, "r_ext") if args.baseline else None
     orac = _agg(args.outroot, args.oracle, "r_ext") if args.oracle else None

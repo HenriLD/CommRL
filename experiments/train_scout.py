@@ -43,7 +43,7 @@ def evaluate(actor, cond, listener, seed, n_envs=64, device=torch.device("cpu"),
              blind=False):
     env = S.ScoutSupportEnv(n_envs, oracle=(cond == "oracle"), seed=seed, blind=blind)
     obs = env.reset()
-    ear = cond in ("ear", "learned_ear", "filter_ear")
+    ear = cond in ("ear", "learned_ear", "filter_ear", "learned_act_ear")
     if ear:
         obs = inject_ear(obs, torch.full((n_envs, S.N_MEANINGS), 1 / 3))
     gen = torch.Generator().manual_seed(seed)
