@@ -16,6 +16,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+import ckpt
 import scout_support as S
 import scout_continuous as C
 from train_masac import Actor, CentralCritic
@@ -144,8 +145,23 @@ def main():
     history = []
     t0 = time.time()
     total_steps = 0
+    start_cycle = 0
+    resumed_at = None
+    nets_d = {"actor": actor, "critic": critic, "critic_t": critic_t}
+    if listener is not None:
+        nets_d["listener"] = listener
+    opts_d = {"a": opt_a, "c": opt_c, "alpha": opt_alpha}
+    if opt_l is not None:
+        opts_d["l"] = opt_l
+    res = ckpt.load(args.outdir, nets_d, opts_d)
+    if res:
+        start_cycle, total_steps, history, ex = res
+        with torch.no_grad():
+            log_alpha.copy_(ex["log_alpha"].to(device))
+        resumed_at = start_cycle
+        print(f"resumed at cycle {start_cycle}", flush=True)
 
-    for cycle in range(args.cycles):
+    for cycle in range(start_cycle, args.cycles):
         obs = env.reset()
         for t in range(S.EPISODE_LEN):
             with torch.no_grad():
@@ -233,16 +249,23 @@ def main():
             m = evaluate(actor, args.condition, listener, seed=12345, device=device)
             m.update(cycle=cycle + 1, steps=total_steps,
                      wall_min=round((time.time() - t0) / 60, 1))
+            if resumed_at is not None:
+                m["resumed_at"] = resumed_at
+                resumed_at = None
             history.append(m)
             print(f"[{args.condition} s{args.seed}] cyc {cycle+1}/{args.cycles} "
                   f"R_ext {m['r_ext']:.2f} commit {m['commit_acc']:.2f} "
                   f"comm {m['comm_rw']:.2f} ({m['wall_min']} min)", flush=True)
             with open(os.path.join(args.outdir, "history.json"), "w") as f:
                 json.dump({"args": vars(args), "history": history}, f, indent=1)
+        if (cycle + 1) % ckpt.CKPT_EVERY == 0 and cycle + 1 < args.cycles:
+            ckpt.save(args.outdir, cycle + 1, total_steps, history,
+                      nets_d, opts_d, {"log_alpha": log_alpha.detach().cpu()})
 
     torch.save({"actor": actor.state_dict(),
                 "listener": listener.state_dict() if listener else None},
                os.path.join(args.outdir, "model.pt"))
+    ckpt.clear(args.outdir)
     print(f"DONE {args.condition} seed {args.seed} in {(time.time()-t0)/60:.1f} min")
 
 
