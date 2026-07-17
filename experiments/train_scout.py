@@ -9,6 +9,10 @@ Conditions:
   filter       recursive Bayesian evidence accumulation over the episode
   learned      learned listener L_theta on the scout, N_r = 0
   learned_prag learned listener + one RSA step over 16 alternatives
+  learned_act* listener bounded to the audience viewpoint (site bearings + action)
+  learned_pre* act-bounded listener trained on pre-key steps only, so decode
+               accuracy can only come from early signaling, never from the
+               post-commitment leg
 
 Usage: python train_scout.py --condition filter --seed 0 --outdir results_scout/filter_s0
 """
@@ -87,7 +91,8 @@ def main():
                    choices=["baseline", "oracle", "simple", "exclusivity",
                             "progress", "filter", "learned", "learned_prag",
                             "ear", "learned_ear", "filter_ear",
-                            "learned_act", "learned_act_prag", "learned_act_ear"])
+                            "learned_act", "learned_act_prag", "learned_act_ear",
+                            "learned_pre", "learned_pre_prag"])
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--lam", type=float, default=0.1)
     p.add_argument("--cycles", type=int, default=150)
@@ -124,8 +129,11 @@ def main():
     lam = 0.0 if args.condition in ("baseline", "oracle", "ear") else args.lam
     use_listener = args.condition in ("learned", "learned_prag", "ear", "learned_ear",
                                       "learned_act", "learned_act_prag",
-                                      "learned_act_ear")
-    listener_inputs = "act" if args.condition.startswith("learned_act") else "full"
+                                      "learned_act_ear",
+                                      "learned_pre", "learned_pre_prag")
+    listener_inputs = ("act" if args.condition.startswith(("learned_act", "learned_pre"))
+                       else "full")
+    listener_prekey = args.condition.startswith("learned_pre")
     ear = args.condition in ("ear", "learned_ear", "filter_ear", "learned_act_ear")
 
     env = S.ScoutSupportEnv(args.n_envs, oracle=(args.condition == "oracle"),
@@ -198,11 +206,17 @@ def main():
 
                 if use_listener:
                     logits = listener(b_obs[:, 0], b_act[:, 0])
-                    l_loss = F.cross_entropy(logits, b_target)
+                    if listener_prekey:
+                        w = 1.0 - b_obs[:, 0, S.KEY_INDEX]
+                        ce = F.cross_entropy(logits, b_target, reduction="none")
+                        l_loss = (ce * w).sum() / w.sum().clamp(min=1.0)
+                    else:
+                        l_loss = F.cross_entropy(logits, b_target)
                     opt_l.zero_grad(); l_loss.backward(); opt_l.step()
                     if lam > 0:
                         with torch.no_grad():
-                            if args.condition in ("learned_prag", "learned_act_prag"):
+                            if args.condition in ("learned_prag", "learned_act_prag",
+                                                  "learned_pre_prag"):
                                 alt = torch.rand((args.batch, 16, 2),
                                                  device=device) * 2 - 1
                                 rc = listener.comm_reward(b_obs[:, 0], b_act[:, 0],
