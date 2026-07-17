@@ -59,6 +59,15 @@ class Actor(nn.Module):
         logp = logp - torch.log(1 - a.pow(2) + 1e-6).sum(-1)
         return a, logp
 
+    def log_prob(self, obs, a):
+        """Log-density of a GIVEN tanh-squashed action under this policy."""
+        mu, log_std = self(obs)
+        std = log_std.exp()
+        pre = torch.atanh(a.clamp(-1 + 1e-6, 1 - 1e-6))
+        logp = (-0.5 * ((pre - mu) / std) ** 2 - log_std
+                - 0.5 * np.log(2 * np.pi)).sum(-1)
+        return logp - torch.log(1 - a.pow(2) + 1e-6).sum(-1)
+
 
 class CentralCritic(nn.Module):
     def __init__(self, hidden=256, n_agents=N_AGENTS, obs_dim=OBS_DIM, act_dim=ACT_DIM):

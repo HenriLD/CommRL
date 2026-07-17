@@ -32,6 +32,56 @@ from train_masac import Actor, CentralCritic, ReplayBuffer
 HANDCRAFTED = ("simple", "exclusivity", "progress", "filter")
 
 
+class IPLWrapper:
+    """Inverse-planning listener: the RSA-textbook L0 instantiated by a
+    FROZEN, independently trained, non-communicative goal-conditioned policy.
+    L0(m|s,a) = pi_ref(a|s,m) / sum_m' pi_ref(a|s,m') -- Bayes over the
+    reference policy's action densities with the meaning slot substituted.
+    No hand-crafted geometry, no free parameters, no co-adaptation: the
+    common ground is competence itself."""
+
+    KAPPA = 0.5  # RSA soft-rationality tolerance (action units), the one dial
+
+    def __init__(self, ref_actor):
+        self.ref = ref_actor
+
+    def means(self, obs):
+        """Competent action for each candidate meaning: tanh(mu_ref(s, m))."""
+        mus = []
+        for m in range(S.N_MEANINGS):
+            o = obs.clone()
+            o[..., S.PREF_SLICE] = 0.0
+            o[..., S.PREF_SLICE.start + m] = 1.0
+            mu, _ = self.ref(o)
+            mus.append(torch.tanh(mu))
+        return torch.stack(mus, dim=-2)              # (..., M, ACT_DIM)
+
+    def logits(self, obs, actions):
+        mu = self.means(obs)
+        d2 = ((actions.unsqueeze(-2) - mu) ** 2).sum(-1)
+        return -d2 / (2 * self.KAPPA ** 2)           # (..., M)
+
+    def __call__(self, obs, actions):
+        return self.logits(obs, actions)
+
+    def comm_reward(self, obs, actions, target, pragmatic=False,
+                    alt_actions=None, n_iter=1):
+        import math
+        if not pragmatic:
+            logp = F.log_softmax(self.logits(obs, actions), dim=-1)
+            lp = torch.gather(logp, -1, target.unsqueeze(-1)).squeeze(-1)
+            return lp + math.log(S.N_MEANINGS)
+        acts = torch.cat([actions.unsqueeze(-2), alt_actions], dim=-2)
+        mu = self.means(obs)                          # (batch, M, ACT)
+        d2 = ((acts.unsqueeze(-2) - mu.unsqueeze(-3)) ** 2).sum(-1)  # (b, A, M)
+        L = F.softmax(-d2 / (2 * self.KAPPA ** 2), dim=-1)
+        for _ in range(n_iter):
+            Sp = L / L.sum(dim=-2, keepdim=True).clamp(min=1e-12)
+            L = Sp / Sp.sum(dim=-1, keepdim=True).clamp(min=1e-12)
+        p = torch.gather(L[..., 0, :], -1, target.unsqueeze(-1)).squeeze(-1)
+        return torch.log(p.clamp(min=1e-8)) + math.log(S.N_MEANINGS)
+
+
 def inject_ear(obs, posterior):
     """Fill the supporter's partner-meaning slot with the listener posterior."""
     obs = obs.clone()
@@ -101,7 +151,8 @@ def main():
                             "ear", "learned_ear", "filter_ear",
                             "learned_act", "learned_act_prag", "learned_act_ear",
                             "learned_pre", "learned_pre_prag",
-                            "inforeg", "partner_belief"])
+                            "inforeg", "partner_belief",
+                            "ipl", "ipl_prag"])
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--lam", type=float, default=0.1)
     p.add_argument("--cycles", type=int, default=150)
@@ -132,6 +183,11 @@ def main():
     p.add_argument("--alt_policy", action="store_true",
                    help="draw RSA alternative actions from the current policy "
                         "instead of uniform random (proper RSA alternative set)")
+    p.add_argument("--ref_ckpt",
+                   default=os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                        "results_scout3", "baseline_s9", "model.pt"),
+                   help="frozen non-communicative reference policy for the "
+                        "inverse-planning listener (seed-disjoint from runs)")
     args = p.parse_args()
     S.configure(args.n_sites, args.minefield, args.sup_speed, args.shape_w)
 
@@ -155,6 +211,7 @@ def main():
     # state-only decoder; Tian-style partner belief reads the supporter's obs
     inforeg = args.condition == "inforeg"
     pbelief = args.condition == "partner_belief"
+    ipl = args.condition in ("ipl", "ipl_prag")
     ear = args.condition in ("ear", "learned_ear", "filter_ear", "learned_act_ear")
 
     env = S.ScoutSupportEnv(args.n_envs, oracle=(args.condition == "oracle"),
@@ -177,6 +234,15 @@ def main():
     listener2 = S.ScoutListener(inputs="state").to(device) if inforeg else None
     opt_l2 = (torch.optim.Adam(listener2.parameters(), lr=args.listener_lr)
               if inforeg else None)
+    if ipl:
+        ref_ckpt = torch.load(args.ref_ckpt, map_location="cpu",
+                              weights_only=True)
+        ref_actor = Actor(obs_dim=S.OBS_DIM, act_dim=S.ACT_DIM)
+        ref_actor.load_state_dict(ref_ckpt["actor"])
+        ref_actor.to(device).eval()
+        for prm in ref_actor.parameters():
+            prm.requires_grad_(False)
+        listener = IPLWrapper(ref_actor)
 
     buf = ReplayBuffer(400_000, device, n_agents=S.N_AGENTS,
                        obs_dim=S.OBS_DIM, act_dim=S.ACT_DIM)
@@ -273,6 +339,22 @@ def main():
                             b_rcomm = torch.zeros_like(b_rcomm)
                             b_rcomm[:, 0] = rc
 
+                if ipl and lam > 0:
+                    with torch.no_grad():
+                        if args.condition == "ipl_prag":
+                            alt = torch.rand((args.batch, 16, 2),
+                                             device=device) * 2 - 1
+                            rc = listener.comm_reward(b_obs[:, 0], b_act[:, 0],
+                                                      b_target, pragmatic=True,
+                                                      alt_actions=alt)
+                        else:
+                            rc = listener.comm_reward(b_obs[:, 0], b_act[:, 0],
+                                                      b_target)
+                        b_pre_key = 1.0 - b_obs[:, 0, S.KEY_INDEX]
+                        rc = rc * (args.voi + (1 - args.voi) * b_pre_key)
+                        b_rcomm = torch.zeros_like(b_rcomm)
+                        b_rcomm[:, 0] = rc
+
                 r_total = b_rext + lam * b_rcomm.sum(dim=1)
                 alpha = log_alpha.exp().detach()
 
@@ -315,10 +397,12 @@ def main():
             with open(os.path.join(args.outdir, "history.json"), "w") as f:
                 json.dump({"args": vars(args), "history": history}, f, indent=1)
 
+    save_l = listener if hasattr(listener, "state_dict") else None
     torch.save({"actor": actor.state_dict(),
-                "listener": listener.state_dict() if listener else None,
-                "listener_inputs": listener_inputs if listener else None,
-                "listener2": listener2.state_dict() if listener2 else None},
+                "listener": save_l.state_dict() if save_l else None,
+                "listener_inputs": listener_inputs if save_l else None,
+                "listener2": listener2.state_dict() if listener2 else None,
+                "ref_ckpt": args.ref_ckpt if ipl else None},
                os.path.join(args.outdir, "model.pt"))
     print(f"DONE {args.condition} seed {args.seed} in {(time.time()-t0)/60:.1f} min")
 
