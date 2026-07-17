@@ -117,6 +117,12 @@ def main():
                    help="supporter max speed (controls the oracle premium)")
     p.add_argument("--shape_w", type=float, default=None,
                    help="scout shaping weight (controls signal cost)")
+    p.add_argument("--listener_lr", type=float, default=1e-3,
+                   help="reward-listener learning rate; below the actor lr it "
+                        "bounds how fast the audience adapts to the speaker")
+    p.add_argument("--alt_policy", action="store_true",
+                   help="draw RSA alternative actions from the current policy "
+                        "instead of uniform random (proper RSA alternative set)")
     args = p.parse_args()
     S.configure(args.n_sites, args.minefield, args.sup_speed, args.shape_w)
 
@@ -151,7 +157,8 @@ def main():
     target_entropy = -float(S.ACT_DIM)
 
     listener = S.ScoutListener(inputs=listener_inputs).to(device) if use_listener else None
-    opt_l = torch.optim.Adam(listener.parameters(), lr=1e-3) if use_listener else None
+    opt_l = (torch.optim.Adam(listener.parameters(), lr=args.listener_lr)
+             if use_listener else None)
 
     buf = ReplayBuffer(400_000, device, n_agents=S.N_AGENTS,
                        obs_dim=S.OBS_DIM, act_dim=S.ACT_DIM)
@@ -217,8 +224,13 @@ def main():
                         with torch.no_grad():
                             if args.condition in ("learned_prag", "learned_act_prag",
                                                   "learned_pre_prag"):
-                                alt = torch.rand((args.batch, 16, 2),
-                                                 device=device) * 2 - 1
+                                if args.alt_policy:
+                                    o_rep = b_obs[:, 0].repeat_interleave(16, dim=0)
+                                    alt, _ = actor.sample(o_rep)
+                                    alt = alt.reshape(args.batch, 16, S.ACT_DIM)
+                                else:
+                                    alt = torch.rand((args.batch, 16, 2),
+                                                     device=device) * 2 - 1
                                 rc = listener.comm_reward(b_obs[:, 0], b_act[:, 0],
                                                           b_target, pragmatic=True,
                                                           alt_actions=alt)
