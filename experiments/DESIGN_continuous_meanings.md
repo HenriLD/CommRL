@@ -26,15 +26,38 @@ information (the density analog of saturation, unbounded). The contrastive
 ratio form is the principled choice, not a convenience. This deserves its own
 theory paragraph (Prop-2-style: bounded rewards or bust).
 
-## The inversion needs a bottleneck
+## The inversion needs a bottleneck (architecture settled with user, 2026-07-18)
 
-z is meaningful only if it is the ONLY path from private observation to the
-policy: private obs -> encoder -> z -> pi(a|s,z). Then task performance
-forces z to carry decision-relevant content and decodability-of-z equals
-decodability-of-what-drives-behavior; the agent learns WHAT to communicate
-(self-assigned meanings). Without the bottleneck the policy routes around z.
-Stage 1 (this repo): z = fixed embedding (cos t, sin t) of a continuous
-target bearing -- tests the machinery. Stage 2: learned encoder bottleneck.
+Split the policy input: PRIVATE perspective -> encoder -> z (the bottleneck),
+then concat [z, PUBLIC perspective] -> action head. z is the only path from
+private observation to the policy, so task performance forces z to carry the
+decision-relevant private content; decodability-of-z = decodability of what
+drives behavior.
+
+Resolution of the context-dependence concern: RSA places context-dependence
+in the SPEAKER's utterance choice, not the meaning -- the action head (and
+the listener) both condition on public context freely, so context-dependent
+compression happens at the channel. Cost: the bottleneck width must fit the
+union over contexts of decision-relevant private content (no per-context
+pruning); acceptable. Keeping z private-only is REQUIRED by our own
+saturation analysis: public features in the decoding target reintroduce the
+context shortcut on the meaning side. "Public meanings" are excluded by the
+oracle-gap logic itself: anything commonly observed has zero communication
+premium by definition. Hence z = (private INTERSECT decision-relevant) --
+"what is worth communicating," derived rather than specified.
+
+Stage-2 additions:
+- VIB bottleneck (KL to N(0,I) <= C) gives a tunable information budget; the
+  TRANSPARENCY COEFFICIENT I(Z; behavior) / I(Z; private) -- both estimable
+  with the contrastive machinery -- measures how much of what the agent
+  knows-and-uses is readable. Headline metric.
+- The decisive test needs DECOYS: private obs = true bearing + decoy bearings
+  + noise channels, only part decision-relevant. Demonstration = the
+  bottleneck encodes the true bearing only and the legibility reward makes
+  exactly that readable (agent-selected content).
+
+Stage 1 (implemented): z = fixed embedding (cos t, sin t) of a continuous
+target bearing -- tests the particle/Sinkhorn machinery first.
 
 ## Testbed: continuous-bearing scout-support
 
