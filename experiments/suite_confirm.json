@@ -1,0 +1,154 @@
+[
+ {
+  "name": "lam06_learned_pre_prag_s8",
+  "args": [
+   "--condition",
+   "learned_pre_prag",
+   "--seed",
+   "8",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.6",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "lam06_learned_pre_prag_s9",
+  "args": [
+   "--condition",
+   "learned_pre_prag",
+   "--seed",
+   "9",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.6",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "lam06_learned_pre_prag_s10",
+  "args": [
+   "--condition",
+   "learned_pre_prag",
+   "--seed",
+   "10",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.6",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "lam06_learned_pre_prag_s11",
+  "args": [
+   "--condition",
+   "learned_pre_prag",
+   "--seed",
+   "11",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.6",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "lam06_learned_pre_prag_s12",
+  "args": [
+   "--condition",
+   "learned_pre_prag",
+   "--seed",
+   "12",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.6",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "lam06_learned_pre_prag_s13",
+  "args": [
+   "--condition",
+   "learned_pre_prag",
+   "--seed",
+   "13",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.6",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "lam06_learned_pre_prag_s14",
+  "args": [
+   "--condition",
+   "learned_pre_prag",
+   "--seed",
+   "14",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.6",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "lam06_learned_pre_prag_s15",
+  "args": [
+   "--condition",
+   "learned_pre_prag",
+   "--seed",
+   "15",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.6",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ }
+]
