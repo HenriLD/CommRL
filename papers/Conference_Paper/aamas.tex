@@ -310,7 +310,7 @@ This benchmark produced three successive spurious conclusions before the converg
 \subsection{Environment B: The Cost of Signaling with Nothing to Say}
 \label{ssec:results_spread}
 
-ENVBTEXT
+Environment B measures what a communicative reward costs when there is nothing to say (all numbers at the converged 400-cycle budget, 5 seeds; full table and figures in Appendix~\ref{app:envb}). The oracle confirms the near-zero premium: $1.93$ vs.\ baseline $1.86$ ($+0.07\pm.08$, n.s.). An earlier 150-cycle evaluation had put the oracle \emph{below} baseline---a pre-convergence artifact of comparing learners mid-climb (Sec.~\ref{ssec:results_dynamics}); at convergence the premium is properly non-negative and near zero, which is what makes this environment the control. Calibrated learned listeners are then a free add-on: task reward at baseline ($1.93\pm.06$ literal, $1.87\pm.02$ recursed), communicative reward optimized to genuinely \emph{positive} information gain ($+0.21$/$+0.22$), and the RSA recursion again extracting more decodable signal than literal decoding (converged listener accuracy $.690$ vs.\ $.644$)---the same directional effect as Environment A, visible here in the channel because the near-zero premium caps any task-reward expression. Miscalibration, by contrast, is a tax with a free diagnostic: the exclusivity listener's own reward is stuck \emph{below} the uninformative level ($-1.83$; its margin demand is geometrically unsatisfiable) and it costs $9\%$ of task reward ($1.69$, $t=2.3$, suggestive)---a tax our earlier 150-cycle evaluation overestimated at $46\%$, the pre-convergence hazard once more: miscalibrated rewards slow learning, so their harm looks catastrophic precisely at budgets where the baseline is still climbing. The simple listener is intermediate ($1.81$, n.s., $\Rcomm=-0.92$). Post-hoc probes add a sharp coda: the exclusivity condition's converged behavior is the \emph{most} decodable of all to a fresh unconstrained decoder ($.700\pm.008$ vs.\ baseline $.665\pm.007$), yet its own listener never credits it---miscalibration is a mismatch of vocabulary, not an absence of signal. An intrinsic reward persistently below its uninformative level certifies it, at zero measurement cost.
 
 \section{Discussion}
 \label{sec:discussion}
@@ -343,7 +343,7 @@ We connected pragmatic inference and maximum-entropy RL, importing the RSA liste
 \textbf{Parameter} & \textbf{Value} \\
 \midrule
 Parallel environments / episode length & 64 / 50 \\
-Training cycles (Env.\ B / Env.\ A) & ENVBCYC / 400 \\
+Training cycles (both envs.; Env.\ B $\lambda$-sweep) & 400 (150) \\
 Actor / critic architecture & MLP $256\times256$ \\
 Learning rate (actor, critic) / listener & $3{\times}10^{-4}$ / $10^{-3}$ \\
 Discount / target smoothing & 0.95 / 0.005 \\
@@ -369,7 +369,42 @@ All environments, training, aggregation, and figure code, with launch specificat
 \section{Environment B Details}
 \label{app:envb}
 
-ENVBAPPENDIX
+Three agents and three colored landmarks in a continuous arena; each agent holds a private color preference; the team is rewarded for matched coverage, penalized for distance and collisions. Meanings are the three colors; every agent receives $\Rcomm$ under its own listener; $\lambda=0.1$.
+
+\begin{table}[h]
+\centering
+\caption{Environment B at the converged budget (400 cycles; mean $\pm$ s.e.m., 5 seeds). $\Rcomm$ on the information-gain scale (0 = uninformative); List.\ acc.\ is the co-trained listener's converged accuracy.}
+\label{tab:envb}
+\setlength{\tabcolsep}{3.4pt}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Condition} & $\Rext$ & Spec. & $\Rcomm$ & List. & Post-hoc \\
+\midrule
+Baseline & $1.86\pm.06$ & $.859$ & --- & --- & $.665$ \\
+Oracle & $1.93\pm.06$ & $.862$ & --- & --- & $.672$ \\
+Simple $L_0$ & $1.81\pm.05$ & $.849$ & $-0.92$ & --- & $.684$ \\
+Exclusivity $L_0$ & $1.69\pm.05$ & $.832$ & $-1.83$ & --- & $.700$ \\
+Learned $\Ltheta$ & $\mathbf{1.93\pm.06}$ & $.847$ & $+0.21$ & $.644$ & $.672$ \\
+Learned + RSA & $1.87\pm.02$ & $.837$ & $\mathbf{+0.22}$ & $\mathbf{.690}$ & $.684$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.9\columnwidth]{img/comm_reward.png}
+\caption{Achieved communicative reward $\Rcomm$ over training (each condition under its own listener; 0 = uninformative). Calibration levels separate: learned listeners cross into positive information gain; the exclusivity listener never leaves negative territory---the miscalibration certificate.}
+\label{fig:comm_reward}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\columnwidth]{img/trajectories.png}
+\caption{A converged evaluation episode under three conditions. Squares are landmarks (color = category); trajectories are colored by the agent's private preference and darken with time. The exclusivity-listener agents sweep the arena and settle off-landmark---costly motion signaling nothing; the learned-pragmatic agents take direct, mutually distinct paths.}
+\label{fig:trajectories}
+\end{figure}
+
+\textbf{The weight $\lambda$ (exploratory, 150 cycles, 2 seeds/point).} With the learned listener, $\lambda$ behaves like a dial along an information--performance frontier, up to genuinely positive information gain at a large task cost at $\lambda=1$; with the exclusivity listener no operating point buys information---the reward is ignored at small $\lambda$ and destructive at moderate $\lambda$. Calibration is what turns $\lambda$ from a landmine into a dial.
 
 \bibliographystyle{ACM-Reference-Format}
 \begin{thebibliography}{10}

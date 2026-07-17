@@ -31,7 +31,7 @@ POINTS = [
     ("Partner 0.90",       "results_boundary", "sp090_", "progress",  "core"),
     ("Signal cost 2x",     "results_boundary", "sw2_",  "progress",   "cost"),
     ("Signal cost 4x",     "results_boundary", "sw4_",  "progress",   "cost"),
-    ("Pref. spread (Env B)", "results",      "",      "learned_prag", "nogap"),
+    ("Pref. spread (Env B)", "results_envB400", "",  "learned_prag", "nogap"),
 ]
 COLORS = {"core": "#0072B2", "slow": "#D55E00", "cost": "#E69F00",
           "nogap": "#666666"}
