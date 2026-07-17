@@ -37,10 +37,19 @@ def main():
             continue
         jobs.append((cond, seed, outdir))
 
+    ctrl = os.path.join(here, "workers.txt")
+
+    def cap():
+        try:
+            with open(ctrl) as f:
+                return max(0, int(f.read().strip()))
+        except (OSError, ValueError):
+            return args.workers
+
     running = []
     while jobs or running:
         running = [(proc, tag) for proc, tag in running if proc.poll() is None]
-        while jobs and len(running) < args.workers:
+        while jobs and len(running) < cap():
             cond, seed, outdir = jobs.pop(0)
             os.makedirs(outdir, exist_ok=True)
             log = open(os.path.join(outdir, "log.txt"), "w")

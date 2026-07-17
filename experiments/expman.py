@@ -31,6 +31,21 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 GPU_PY = r"C:\Users\henri\AppData\Local\Programs\Python\Python313\python.exe"
 
 
+WORKER_CTRL = os.path.join(HERE, "workers.txt")
+
+
+def _worker_cap(default):
+    """Dynamic worker cap: write an integer to experiments/workers.txt at any
+    time to throttle (0 = pause launching; in-flight runs always finish);
+    delete the file to restore the --workers default. Re-read every poll, so
+    changes take effect as running jobs complete."""
+    try:
+        with open(WORKER_CTRL) as f:
+            return max(0, int(f.read().strip()))
+    except (OSError, ValueError):
+        return default
+
+
 def launch(args):
     with open(args.spec) as f:
         jobs = json.load(f)
@@ -42,9 +57,14 @@ def launch(args):
         queue.append((job["name"], outdir, job["args"]))
     print(f"{len(queue)} jobs queued ({len(jobs) - len(queue)} already done)")
     running = []
+    cap_seen = args.workers
     while queue or running:
         running = [(p, n) for p, n in running if p.poll() is None]
-        while queue and len(running) < args.workers:
+        cap = _worker_cap(args.workers)
+        if cap != cap_seen:
+            print(f"worker cap -> {cap} (workers.txt)", flush=True)
+            cap_seen = cap
+        while queue and len(running) < cap:
             name, outdir, extra = queue.pop(0)
             os.makedirs(outdir, exist_ok=True)
             cmd = [args.python or GPU_PY, os.path.join(HERE, args.script),

@@ -25,8 +25,13 @@ environments in torch; no external MARL framework.
   Flags: `--lam --voi --listener_lr --alt_policy --device --n_sites
   --minefield --blind --sup_speed --shape_w`.
 - `expman.py` — token-cheap experiment manager: `launch --spec <suite>.json
-  --outroot <dir> --workers 6`, `status`, `report` (gates on completed runs).
-  The `suite_*.json` specs determine every run in the paper exactly.
+  --outroot <dir> --workers 6 [--script train_merge.py]`, `status`, `report`
+  (gates on completed runs). The `suite_*.json` specs determine every run in
+  the paper exactly. **Dynamic throttling:** write an integer to
+  `experiments/workers.txt` at any time (e.g. `Set-Content workers.txt 2`
+  to free the PC, `0` to pause launching entirely); the cap adjusts as
+  running jobs complete — in-flight runs always finish. Delete the file to
+  restore the `--workers` default. Honored by `expman.py` and `launch.py`.
 - Analysis / figures: `paper_figs.py` (forest, budget dynamics, commit delta),
   `boundary_map.py` (premium-vs-gain fits with bootstrap CIs),
   `info_profile.py` (per-timestep post-hoc decodability), `commit_curve.py`,
