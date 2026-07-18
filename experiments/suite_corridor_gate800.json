@@ -1,0 +1,182 @@
+﻿[
+    {
+        "name":  "baseline_s0",
+        "args":  [
+                     "--condition",
+                     "baseline",
+                     "--seed",
+                     "0",
+                     "--cycles",
+                     "800",
+                     "--device",
+                     "cuda",
+                     "--threads",
+                     "2"
+                 ]
+    },
+    {
+        "name":  "baseline_s1",
+        "args":  [
+                     "--condition",
+                     "baseline",
+                     "--seed",
+                     "1",
+                     "--cycles",
+                     "800",
+                     "--device",
+                     "cuda",
+                     "--threads",
+                     "2"
+                 ]
+    },
+    {
+        "name":  "baseline_s2",
+        "args":  [
+                     "--condition",
+                     "baseline",
+                     "--seed",
+                     "2",
+                     "--cycles",
+                     "800",
+                     "--device",
+                     "cuda",
+                     "--threads",
+                     "2"
+                 ]
+    },
+    {
+        "name":  "baseline_s3",
+        "args":  [
+                     "--condition",
+                     "baseline",
+                     "--seed",
+                     "3",
+                     "--cycles",
+                     "800",
+                     "--device",
+                     "cuda",
+                     "--threads",
+                     "2"
+                 ]
+    },
+    {
+        "name":  "oracle_s0",
+        "args":  [
+                     "--condition",
+                     "oracle",
+                     "--seed",
+                     "0",
+                     "--cycles",
+                     "800",
+                     "--device",
+                     "cuda",
+                     "--threads",
+                     "2"
+                 ]
+    },
+    {
+        "name":  "oracle_s1",
+        "args":  [
+                     "--condition",
+                     "oracle",
+                     "--seed",
+                     "1",
+                     "--cycles",
+                     "800",
+                     "--device",
+                     "cuda",
+                     "--threads",
+                     "2"
+                 ]
+    },
+    {
+        "name":  "oracle_s2",
+        "args":  [
+                     "--condition",
+                     "oracle",
+                     "--seed",
+                     "2",
+                     "--cycles",
+                     "800",
+                     "--device",
+                     "cuda",
+                     "--threads",
+                     "2"
+                 ]
+    },
+    {
+        "name":  "oracle_s3",
+        "args":  [
+                     "--condition",
+                     "oracle",
+                     "--seed",
+                     "3",
+                     "--cycles",
+                     "800",
+                     "--device",
+                     "cuda",
+                     "--threads",
+                     "2"
+                 ]
+    },
+    {
+        "name":  "blind_s0",
+        "args":  [
+                     "--condition",
+                     "blind",
+                     "--seed",
+                     "0",
+                     "--cycles",
+                     "800",
+                     "--device",
+                     "cuda",
+                     "--threads",
+                     "2"
+                 ]
+    },
+    {
+        "name":  "blind_s1",
+        "args":  [
+                     "--condition",
+                     "blind",
+                     "--seed",
+                     "1",
+                     "--cycles",
+                     "800",
+                     "--device",
+                     "cuda",
+                     "--threads",
+                     "2"
+                 ]
+    },
+    {
+        "name":  "blind_s2",
+        "args":  [
+                     "--condition",
+                     "blind",
+                     "--seed",
+                     "2",
+                     "--cycles",
+                     "800",
+                     "--device",
+                     "cuda",
+                     "--threads",
+                     "2"
+                 ]
+    },
+    {
+        "name":  "blind_s3",
+        "args":  [
+                     "--condition",
+                     "blind",
+                     "--seed",
+                     "3",
+                     "--cycles",
+                     "800",
+                     "--device",
+                     "cuda",
+                     "--threads",
+                     "2"
+                 ]
+    }
+]
