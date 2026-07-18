@@ -215,6 +215,8 @@ training_profile.prof
 experiments/results*/
 *.pt
 *.err
+# local worker-cap knob
+experiments/workers.txt
 
 papers/ICASSP_Paper/
 papers/Master_Thesis/

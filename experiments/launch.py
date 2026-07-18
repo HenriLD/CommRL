@@ -65,7 +65,10 @@ def main():
                 cmd += ["--threads", str(args.threads)]
             if args.hidden is not None:
                 cmd += ["--hidden", str(args.hidden)]
-            proc = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT)
+            flags = subprocess.BELOW_NORMAL_PRIORITY_CLASS if os.name == "nt" else 0
+            env = {**os.environ, "OMP_WAIT_POLICY": "PASSIVE", "KMP_BLOCKTIME": "0"}
+            proc = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT,
+                                    creationflags=flags, env=env)
             running.append((proc, f"{cond}_s{seed}"))
             print(f"launched {cond} s{seed} (pid {proc.pid}); "
                   f"{len(jobs)} queued, {len(running)} running", flush=True)

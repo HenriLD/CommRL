@@ -33,6 +33,12 @@ GPU_PY = r"C:\Users\henri\AppData\Local\Programs\Python\Python313\python.exe"
 
 WORKER_CTRL = os.path.join(HERE, "workers.txt")
 
+# Trainers run below-normal priority with OpenMP spin-waiting off: the worker
+# cap controls GPU parallelism, but interactive responsiveness comes from
+# priority — idle-loop spinning otherwise pegs every core regardless of count.
+CHILD_FLAGS = subprocess.BELOW_NORMAL_PRIORITY_CLASS if os.name == "nt" else 0
+CHILD_ENV = {**os.environ, "OMP_WAIT_POLICY": "PASSIVE", "KMP_BLOCKTIME": "0"}
+
 
 def _worker_cap(default):
     """Dynamic worker cap: write an integer to experiments/workers.txt at any
@@ -70,7 +76,8 @@ def launch(args):
             cmd = [args.python or GPU_PY, os.path.join(HERE, args.script),
                    "--outdir", outdir] + extra
             log = open(os.path.join(outdir, "log.txt"), "w")
-            p = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT)
+            p = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT,
+                                 creationflags=CHILD_FLAGS, env=CHILD_ENV)
             running.append((p, name))
             print(f"launched {name} ({len(queue)} left)", flush=True)
         time.sleep(15)

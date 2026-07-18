@@ -32,6 +32,9 @@ environments in torch; no external MARL framework.
   to free the PC, `0` to pause launching entirely); the cap adjusts as
   running jobs complete — in-flight runs always finish. Delete the file to
   restore the `--workers` default. Honored by `expman.py` and `launch.py`.
+  Trainers also launch at **below-normal priority** with OpenMP spin-waiting
+  disabled, so interactive apps preempt them even at 100% CPU readings —
+  lowering the worker count is only needed to free GPU/VRAM, not CPU.
 - Analysis / figures: `paper_figs.py` (forest, budget dynamics, commit delta),
   `boundary_map.py` (premium-vs-gain fits with bootstrap CIs),
   `info_profile.py` (per-timestep post-hoc decodability), `commit_curve.py`,
