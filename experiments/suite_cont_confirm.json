@@ -1,0 +1,10 @@
+[
+ {"name": "nceprag03_s8", "args": ["--condition", "nce_prag", "--seed", "8", "--cycles", "400", "--lam", "0.3", "--voi", "0.2", "--device", "cuda", "--threads", "2"]},
+ {"name": "nceprag03_s9", "args": ["--condition", "nce_prag", "--seed", "9", "--cycles", "400", "--lam", "0.3", "--voi", "0.2", "--device", "cuda", "--threads", "2"]},
+ {"name": "nceprag03_s10", "args": ["--condition", "nce_prag", "--seed", "10", "--cycles", "400", "--lam", "0.3", "--voi", "0.2", "--device", "cuda", "--threads", "2"]},
+ {"name": "nceprag03_s11", "args": ["--condition", "nce_prag", "--seed", "11", "--cycles", "400", "--lam", "0.3", "--voi", "0.2", "--device", "cuda", "--threads", "2"]},
+ {"name": "nceprag03_s12", "args": ["--condition", "nce_prag", "--seed", "12", "--cycles", "400", "--lam", "0.3", "--voi", "0.2", "--device", "cuda", "--threads", "2"]},
+ {"name": "nceprag03_s13", "args": ["--condition", "nce_prag", "--seed", "13", "--cycles", "400", "--lam", "0.3", "--voi", "0.2", "--device", "cuda", "--threads", "2"]},
+ {"name": "nceprag03_s14", "args": ["--condition", "nce_prag", "--seed", "14", "--cycles", "400", "--lam", "0.3", "--voi", "0.2", "--device", "cuda", "--threads", "2"]},
+ {"name": "nceprag03_s15", "args": ["--condition", "nce_prag", "--seed", "15", "--cycles", "400", "--lam", "0.3", "--voi", "0.2", "--device", "cuda", "--threads", "2"]}
+]
