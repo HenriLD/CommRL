@@ -124,6 +124,8 @@ def main():
     buf = ReplayBuffer(400_000, device, n_agents=H.N_AGENTS,
                        obs_dim=H.OBS_DIM, act_dim=H.ACT_DIM)
     gen = torch.Generator().manual_seed(args.seed + 999)
+    tgt_params = list(critic_t.parameters())
+    src_params = list(critic.parameters())
 
     history = []
     t0 = time.time()
@@ -242,8 +244,8 @@ def main():
                 opt_alpha.zero_grad(); al_loss.backward(); opt_alpha.step()
 
                 with torch.no_grad():
-                    for pt, ps in zip(critic_t.parameters(), critic.parameters()):
-                        pt.mul_(1 - args.tau).add_(args.tau * ps)
+                    torch._foreach_mul_(tgt_params, 1 - args.tau)
+                    torch._foreach_add_(tgt_params, src_params, alpha=args.tau)
 
         if (cycle + 1) % 10 == 0 or cycle == args.cycles - 1:
             m = evaluate(actor, args.condition, listener, seed=12345,

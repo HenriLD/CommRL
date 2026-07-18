@@ -87,39 +87,46 @@ class CentralCritic(nn.Module):
 
 
 class ReplayBuffer:
+    """Device-resident storage: transitions cross to the training device once
+    at push (one env-step's worth) instead of per-sample (a full batch, four
+    times per env step). Sampling indices still come from the CPU RNG stream,
+    so drawn batches are bit-identical to the CPU-resident version -- the
+    change is pure data movement, not semantics."""
+
     def __init__(self, capacity, device, n_agents=N_AGENTS, obs_dim=OBS_DIM,
                  act_dim=ACT_DIM):
         self.capacity = capacity
         self.device = device
-        self.obs = torch.zeros((capacity, n_agents, obs_dim))
-        self.act = torch.zeros((capacity, n_agents, act_dim))
-        self.r_ext = torch.zeros(capacity)
-        self.r_comm = torch.zeros((capacity, n_agents))
-        self.next_obs = torch.zeros((capacity, n_agents, obs_dim))
-        self.done = torch.zeros(capacity)
-        self.pref = torch.zeros((capacity, n_agents), dtype=torch.long)
+        d = device
+        self.obs = torch.zeros((capacity, n_agents, obs_dim), device=d)
+        self.act = torch.zeros((capacity, n_agents, act_dim), device=d)
+        self.r_ext = torch.zeros(capacity, device=d)
+        self.r_comm = torch.zeros((capacity, n_agents), device=d)
+        self.next_obs = torch.zeros((capacity, n_agents, obs_dim), device=d)
+        self.done = torch.zeros(capacity, device=d)
+        self.pref = torch.zeros((capacity, n_agents), dtype=torch.long, device=d)
         self.idx, self.full = 0, False
 
     def push(self, obs, act, r_ext, r_comm, next_obs, done, pref):
         n = obs.shape[0]
-        i = torch.arange(self.idx, self.idx + n) % self.capacity
-        self.obs[i] = obs.cpu()
-        self.act[i] = act.cpu()
-        self.r_ext[i] = r_ext.cpu()
-        self.r_comm[i] = r_comm.cpu()
-        self.next_obs[i] = next_obs.cpu()
+        d = self.device
+        i = (torch.arange(self.idx, self.idx + n) % self.capacity).to(d)
+        self.obs[i] = obs.to(d)
+        self.act[i] = act.to(d)
+        self.r_ext[i] = r_ext.to(d)
+        self.r_comm[i] = r_comm.to(d)
+        self.next_obs[i] = next_obs.to(d)
         self.done[i] = float(done)
-        self.pref[i] = pref.cpu()
+        self.pref[i] = pref.to(d)
         self.idx = int((self.idx + n) % self.capacity)
         if self.idx < n:
             self.full = True
         self.size = self.capacity if self.full else self.idx
 
     def sample(self, batch):
-        i = torch.randint(0, self.size, (batch,))
-        to = lambda x: x[i].to(self.device)
-        return (to(self.obs), to(self.act), to(self.r_ext), to(self.r_comm),
-                to(self.next_obs), to(self.done), to(self.pref))
+        i = torch.randint(0, self.size, (batch,)).to(self.device)
+        return (self.obs[i], self.act[i], self.r_ext[i], self.r_comm[i],
+                self.next_obs[i], self.done[i], self.pref[i])
 
 
 def evaluate(actor, cond, listener, device, seed, n_envs=64):

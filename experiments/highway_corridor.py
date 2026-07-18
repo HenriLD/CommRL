@@ -69,6 +69,12 @@ HIST_LEN = 6
 MEAN_Y = torch.tensor([0.0, 2.0, 1.0])
 MEAN_X = torch.tensor([X_FORK, X_FORK, ROAD_END])
 
+# hoisted constants (allocation-free obs/step hot paths)
+_ROLE = torch.eye(5)
+_MEANX_ROW = MEAN_X.view(1, 3)
+_MEANY_ROW = MEAN_Y.view(1, 3)
+_NOT_EYE9 = (~torch.eye(9, dtype=torch.bool)).unsqueeze(0)
+
 # per-agent observation layout:
 #   role one-hot (5), own x/50 v/VMAX y/2,
 #   ego-pre flag (1: ego still centered in the middle lane),
@@ -151,11 +157,11 @@ class HighwayCorridorEnv:
 
     def obs(self):
         n = self.n
-        wc = MEAN_X.view(1, 3).expand(n, -1)
+        wc = _MEANX_ROW.expand(n, -1)
         obs = []
         pre = self.pre_flag().unsqueeze(1)
         for i in range(N_AGENTS):
-            role = F.one_hot(torch.tensor(i), N_AGENTS).float().expand(n, -1)
+            role = _ROLE[i].expand(n, -1)
             own = torch.stack([self.x[:, i] / 50.0, self.v[:, i] / V_MAX,
                                self.y[:, i] / 2.0], dim=1)
             pref = torch.zeros((n, N_MEANINGS))
@@ -212,7 +218,7 @@ class HighwayCorridorEnv:
         dx = (ax.unsqueeze(2) - ax.unsqueeze(1)).abs()
         dyy = (ay.unsqueeze(2) - ay.unsqueeze(1)).abs()
         hit = (dx < CAR_LEN) & (dyy < 0.6)
-        hit = hit & ~torch.eye(ax.shape[1], dtype=torch.bool).unsqueeze(0)
+        hit = hit & _NOT_EYE9
         hit[:, 0] = hit[:, 0] & ~frozen0.unsqueeze(1)
         hit[:, :, 0] = hit[:, :, 0] & ~frozen0.unsqueeze(1)
         n_hit = hit[:, :N_AGENTS].any(dim=2).float().sum(dim=1)
@@ -260,8 +266,8 @@ def corridor_progress_reward(env, pre_x, pre_y):
     """Progress listener: per-step reduction of the ego's distance to each
     meaning's completion point (fork on the branch lane, road end on the
     middle); one lane of lateral offset weighted like 10 m of road."""
-    tx = MEAN_X.view(1, 3).expand(env.n, -1)
-    ty = MEAN_Y.view(1, 3).expand(env.n, -1)
+    tx = _MEANX_ROW.expand(env.n, -1)
+    ty = _MEANY_ROW.expand(env.n, -1)
     d_now = ((tx - env.x[:, 0:1]).abs() + 10.0 * (ty - env.y[:, 0:1]).abs())
     d_pre = ((tx - pre_x.unsqueeze(1)).abs() + 10.0 * (ty - pre_y.unsqueeze(1)).abs())
     prog = (d_pre - d_now) / (V_MAX * DT)
