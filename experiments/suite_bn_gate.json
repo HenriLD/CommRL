@@ -1,0 +1,14 @@
+[
+ {"name": "base2_s0", "args": ["--condition", "base2", "--seed", "0", "--cycles", "400", "--device", "cuda", "--threads", "2"]},
+ {"name": "base2_s1", "args": ["--condition", "base2", "--seed", "1", "--cycles", "400", "--device", "cuda", "--threads", "2"]},
+ {"name": "base2_s2", "args": ["--condition", "base2", "--seed", "2", "--cycles", "400", "--device", "cuda", "--threads", "2"]},
+ {"name": "base2_s3", "args": ["--condition", "base2", "--seed", "3", "--cycles", "400", "--device", "cuda", "--threads", "2"]},
+ {"name": "oracle2_s0", "args": ["--condition", "oracle2", "--seed", "0", "--cycles", "400", "--device", "cuda", "--threads", "2"]},
+ {"name": "oracle2_s1", "args": ["--condition", "oracle2", "--seed", "1", "--cycles", "400", "--device", "cuda", "--threads", "2"]},
+ {"name": "oracle2_s2", "args": ["--condition", "oracle2", "--seed", "2", "--cycles", "400", "--device", "cuda", "--threads", "2"]},
+ {"name": "oracle2_s3", "args": ["--condition", "oracle2", "--seed", "3", "--cycles", "400", "--device", "cuda", "--threads", "2"]},
+ {"name": "blind2_s0", "args": ["--condition", "blind2", "--seed", "0", "--cycles", "400", "--device", "cuda", "--threads", "2"]},
+ {"name": "blind2_s1", "args": ["--condition", "blind2", "--seed", "1", "--cycles", "400", "--device", "cuda", "--threads", "2"]},
+ {"name": "blind2_s2", "args": ["--condition", "blind2", "--seed", "2", "--cycles", "400", "--device", "cuda", "--threads", "2"]},
+ {"name": "blind2_s3", "args": ["--condition", "blind2", "--seed", "3", "--cycles", "400", "--device", "cuda", "--threads", "2"]}
+]

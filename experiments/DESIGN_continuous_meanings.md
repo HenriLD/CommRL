@@ -59,6 +59,19 @@ Stage-2 additions:
 Stage 1 (implemented): z = fixed embedding (cos t, sin t) of a continuous
 target bearing -- tests the particle/Sinkhorn machinery first.
 
+Stage 2 (implemented 2026-07-17: scout_bottleneck.py, train_scout_bn.py):
+DecoyScoutEnv appends an 8-dim private block [cos/sin true bearing, 2 decoy
+bearings, 2 noise channels] and zeroes the clean pref slot, so private
+content reaches the policy only through VIBActor's encoder (z_dim 4 <
+priv_dim 8 forces selection; beta * KL(q(z|priv) || N(0,I)) prices it).
+The meaning decoded by NCEListenerZ is the speaker's own per-episode mu_z;
+R_comm stays no-grad -- the representation is selected by task + VIB, the
+behavior is made legible by R_comm, and the transparency coefficient
+measures the composition. All conditions (base2/oracle2/blind2/vib_nce/
+vib_nce_prag) share the architecture and beta, so the anchors price
+communication, not capacity. Gate: suite_bn_gate.json -> results_bn,
+chained behind merge gate v4.
+
 ## Testbed: continuous-bearing scout-support
 
 Target = point on the site circle at angle t ~ U[0, 2pi); meaning space S^1;
