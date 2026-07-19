@@ -121,11 +121,17 @@ def fig_budget(figdir):
             c, (l, h) = closure_ci(P[:, t], B[:, t], O[:, t], n_boot=3000, rng=rng)
             m.append(c); lo.append(l); hi.append(h)
         m, lo, hi = map(np.array, (m, lo, hi))
-        ax.plot(steps[:n] / 1e6, np.clip(m, -1.5, 1.5), color=color, lw=2.0,
+        # emphasis: the sign flip is the story, so only that series carries
+        # full colour and an interval; the others recede to context.
+        lead = cond == "progress"
+        col = color if lead else "#B0B0B0"
+        ax.plot(steps[:n] / 1e6, np.clip(m, -1.5, 1.5), color=col,
+                lw=2.2 if lead else 1.3, zorder=3 if lead else 2,
                 label={"progress": "Progress $L_0$", "learned_ear": "Ear + $R_{comm}$",
                        "learned": "Learned $L_\\theta$"}[cond])
-        ax.fill_between(steps[:n] / 1e6, np.clip(lo, -1.5, 1.5),
-                        np.clip(hi, -1.5, 1.5), color=color, alpha=0.13, lw=0)
+        if lead:
+            ax.fill_between(steps[:n] / 1e6, np.clip(lo, -1.5, 1.5),
+                            np.clip(hi, -1.5, 1.5), color=col, alpha=0.15, lw=0)
     ax.axhline(0, color="#666666", lw=1.2, ls="--")
     ax.axhline(1, color="#111111", lw=1.2, ls=":")
     ax.axvline(0.48, color="#888888", lw=1.0, ls="-.", alpha=0.8)

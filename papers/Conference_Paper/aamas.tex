@@ -168,9 +168,16 @@ Comparing listeners requires a setting that isolates what a listener is supposed
 
 \textbf{Environments and the oracle-gap criterion.} A benchmark for communicative rewards must certify that communication has task value: comparing a baseline against an \emph{oracle} whose observations include all private states measures what intent transmission can unlock. \textbf{Environment A: scout-support} (converged oracle gap $0.112$/step). A fast \emph{scout} privately knows which of three sites is the target; a slower \emph{supporter} earns a team bonus only while both occupy the target together. The scout must first visit a central \emph{pickup waypoint}, so its first-leg task-optimal motion is identical regardless of target---structurally uninformative---and any early information must be actively signaled by curving the approach. The supporter observes the scout's position, velocity, and a 6-step motion history, never its target; only the scout receives $\Rcomm$, with a value-of-information weighting (full weight pre-pickup, $0.2$ after). Variants: \emph{five meanings} (harder inference), \emph{minefield} (wrong commitment costly, not just slow), \emph{blind} (supporter's view of the scout masked---the causal control), \emph{continuous bearings} ($\mathcal{M}=S^1$; Sec.~\ref{ssec:continuous}), and partner-speed / signal-cost sweeps (Sec.~\ref{ssec:boundary}). \textbf{Environment B: preference spread} (oracle gap $\approx 0$). A three-agent cooperative-navigation control where proximity resolves coordination, so an oracle gains nothing; it measures what a communicative reward \emph{costs} when there is nothing to say.
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.80\columnwidth]{img/schematic.png}
+\caption{Environment A, and why it can test legibility. Only the scout knows which site is the target. Its first leg is forced through a pickup waypoint, so that stretch of motion is identical whatever the target is and carries no information by default; only the second leg reveals the target. The supporter is slower and must commit toward a site before that happens, so early information has task value and must be signalled deliberately.}
+\label{fig:schematic}
+\end{figure}
+
 \textbf{Algorithm and conditions.} All agents train with multi-agent SAC: parameter-shared Gaussian actors, a centralized twin critic \cite{lowe2017multi} on the scalar team reward with $\lambda\Rcomm$ added, automatic entropy tuning. Conditions differ only in reward and observation content: baseline ($\lambda{=}0$), oracle, the four hand-crafted listeners, the learned family (literal, $+$RSA, bounded variants), \emph{ear} conditions that append a listener's posterior to the supporter's observation at execution (still decentralized-executable), and two external baselines: \emph{information regularization} in the style of Strouse et al.~\cite{strouse2018learning} (reward $\log q_1(m|s,a) - \log q_0(m|s)$ with two decoders, a variational $I(A;M|S)$) and a \emph{partner-belief} reward in the style of Tian et al.~\cite{tian2020implicit} (a decoder over the supporter's own observation). Hyperparameter provenance: $\lambda=0.3$ and the VOI weight were selected in preliminary short-budget sweeps on the standard task, then frozen for every transfer (Appendix~\ref{app:hyper}).
 
-\textbf{Metrics and statistical policy.} We evaluate on a fixed 64-episode set (identical layouts across conditions and evaluations; cross-condition tests remain unpaired Welch over seeds); final performance averages the last three evaluations; 400 training cycles ($1.28$M steps) throughout. \emph{Commitment accuracy}: fraction of steps the supporter's nearest site is the true target. \emph{Post-hoc decodability}: a fresh listener trained from scratch on each converged policy's rollouts. Multiple-comparison policy: headline claims have Welch $t \geq 4$, surviving Bonferroni at $\alpha{=}.05$ across the ${\sim}30$ condition-versus-baseline tests of Tables~\ref{tab:scout} and \ref{tab:bounded}, which is the family we correct over; effects at conventional $p{<}.05$ are labeled suggestive and uncorrected. We hold negative claims to the same bar: where a condition's point estimate falls below baseline without clearing it, we report a null result rather than a harm. Pre-registration here means operationally: the launch specification was committed before any run of the cohort started; confirmation cohorts are held-out seeds under a frozen recipe. Per-condition seed counts grew by extension (never selective stopping); no completed run was excluded, and extensions are disclosed where they changed an estimate.
+\textbf{Metrics and statistical policy.} We evaluate on a fixed 64-episode set (identical layouts across conditions and evaluations; cross-condition tests remain unpaired Welch over seeds); final performance averages the last three evaluations; 400 training cycles ($1.28$M steps) throughout. \emph{Commitment accuracy}: fraction of steps the supporter's nearest site is the true target. \emph{Post-hoc decodability}: a fresh listener trained from scratch on each converged policy's rollouts. Multiple-comparison policy: headline claims have Welch $t \geq 4$, surviving Bonferroni at $\alpha{=}.05$ across the ${\sim}30$ condition-versus-baseline tests of Table~\ref{tab:scout}, which is the family we correct over; effects at conventional $p{<}.05$ are labeled suggestive and uncorrected. We hold negative claims to the same bar: where a condition's point estimate falls below baseline without clearing it, we report a null result rather than a harm. Pre-registration here means operationally: the launch specification was committed before any run of the cohort started; confirmation cohorts are held-out seeds under a frozen recipe. Per-condition seed counts grew by extension (never selective stopping); no completed run was excluded, and extensions are disclosed where they changed an estimate.
 
 \section{Results}
 \label{sec:results}
@@ -191,7 +198,7 @@ The experiments follow the argument. We first ask which listener pays where comm
 
 Table~\ref{tab:scout} and Figure~\ref{fig:listeners} summarize Environment A at the converged budget. The converged oracle premium is $0.112$ per step ($0.957$ vs.\ $0.845$; commitment $.880$ vs.\ $.851$)---the irreducible value of early intent information.
 
-\textbf{Motion-grounded hand-crafted listeners close most of the gap.} The strongest conditions are the simplest: progress $70\%$ (Welch $t=6.2$), filter $67\%$ ($t=6.5$), plain cosine $62\%$ ($t=5.0$)---through the speaker-side reward alone, with the largest commitment gains ($.857$--$.861$) and visibly more legible scouts (fixed geometric-probe accuracy $.61$ vs.\ $.54$; the fresh-decoder time profile in Fig.~\ref{fig:info_profile} confirms the separation). These listeners credit only \emph{overtly} geometric signals, and overt signals are exactly what the supporter's own policy network can read from raw observations; the channel is the behavior itself. The exception proves the calibration rule: the exclusivity listener, whose margin demand is geometrically unsatisfiable, is unstable across seeds ($0.795\pm.081$; a $1$-in-$8$ collapse rate: seven seeds in $0.84$--$0.93$ and one collapsed at $0.23$---an early $n{=}3$ estimate of $+16\%$ closure was eliminated by extension to $n{=}8$).
+\textbf{Motion-grounded hand-crafted listeners close most of the gap.} The strongest conditions are the simplest: progress $70\%$ (Welch $t=6.2$), filter $67\%$ ($t=6.5$), plain cosine $62\%$ ($t=5.0$)---through the speaker-side reward alone, with the largest commitment gains ($.857$--$.861$) and visibly more legible scouts (fixed geometric-probe accuracy $.61$ vs.\ $.54$, confirmed by a fresh decoder external to every training condition). These listeners credit only \emph{overtly} geometric signals, and overt signals are exactly what the supporter's own policy network can read from raw observations; the channel is the behavior itself. The exception proves the calibration rule: the exclusivity listener, whose margin demand is geometrically unsatisfiable, is unstable across seeds ($0.795\pm.081$; a $1$-in-$8$ collapse rate: seven seeds in $0.84$--$0.93$ and one collapsed at $0.23$---an early $n{=}3$ estimate of $+16\%$ closure was eliminated by extension to $n{=}8$).
 
 \textbf{A blind-partner control certifies the mechanism.} Masking the supporter's view of the scout (8 seeds; blind oracle 4), the pragmatic gain inverts into a significant cost ($-1.67$ vs.\ $-1.56$; $t=2.8$, $p\approx.02$, uncorrected)---the scout still pays the signaling detour for messages nobody receives---while the blind \emph{oracle} retains full performance ($0.963$). The effect is communication, not shaping.
 
@@ -202,31 +209,7 @@ Table~\ref{tab:scout} and Figure~\ref{fig:listeners} summarize Environment A at 
 \subsubsection{Bounding the Learned Listener}
 \label{ssec:results_bounded}
 
-\begin{table}[t]
-\centering
-\caption{Bounding the learned listener (8 seeds per condition, except the full-context and progress rows, which repeat Table~\ref{tab:scout}'s $n{=}10$ entries; premium $0.112$; $\lambda{=}0.3$ unless noted). ``Sat.''\ is converged decode accuracy. The cleanest controlled contrast (suggestive) is the $\lambda{=}0.6$ block: recursion vs.\ no recursion at the same weight is worth $0.064$ ($t\approx3.85$; the $n{=}16$ row pools the selection cohort with the held-out-seed confirmation and is secondary to the confirmation-only estimate in the text).}
-\label{tab:bounded}
-\setlength{\tabcolsep}{3.0pt}
-\begin{tabular}{lcccc}
-\toprule
-\textbf{Condition} & $\Rext$ & Closure & Commit & Sat. \\
-\midrule
-Learned (full context) & $0.828\pm.015$ & $-15\%$ & $.853$ & $.97$ \\
-\;+ viewpoint bound & $0.849\pm.017$ & $4\%$ & $.851$ & $.95$ \\
-\;+ viewpoint, + RSA & $0.868\pm.011$ & $21\%$ & $.856$ & $.95$ \\
-\;+ window bound & $0.841\pm.017$ & $-4\%$ & $.853$ & $.94$ \\
-\;+ window, + RSA & $0.868\pm.009$ & $21\%$ & $.856$ & $.94$ \\
-\midrule
-Window bound, $\lambda{=}0.6$ & $0.820\pm.016$ & $-22\%$ & $.854$ & $.94$ \\
-\;+ RSA, $\lambda{=}0.6$ ($n{=}16$) & $\mathbf{0.884\pm.006}$ & $\mathbf{35\%}$ & $\mathbf{.861}$ & $.94$ \\
-\;+ RSA, $\lambda{=}1.0$ & $0.849\pm.013$ & $4\%$ & $.864$ & $.96$ \\
-\midrule
-Progress (hand-crafted) & $0.924\pm.008$ & $70\%$ & $.861$ & --- \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-If the learned listener fails because it is too strong, audience matching predicts a remedy: weaken it toward the intended reader. A \emph{viewpoint-bounded} listener sees only the site bearings and the action---what the audience uses to interpret the utterance---removing the contextual shortcut; a \emph{window-bounded} variant is additionally trained only on pre-commitment steps, so decode accuracy cannot be earned from the post-commitment leg (Table~\ref{tab:bounded}).
+If the learned listener fails because it is too strong, audience matching predicts a remedy: weaken it toward the intended reader. A \emph{viewpoint-bounded} listener sees only the site bearings and the action---what the audience uses to interpret the utterance---removing the contextual shortcut; a \emph{window-bounded} variant is additionally trained only on pre-commitment steps, so decode accuracy cannot be earned from the post-commitment leg (Fig.~\ref{fig:listeners}).
 
 The first result is a negative control that sharpens the principle. Both bounded listeners \emph{re-saturate}, later (decode accuracy $0.54$ at quarter-training for window-bounded vs.\ $0.88$ full-context) and by a different route, co-adapting to whatever the current policy emits, the second saturation mode of Proposition~\ref{prop:saturation}. Their literal rewards end at baseline parity, curing the harm but recovering nothing. Layering RSA recursion on top lands at $0.868$ ($21\%$ closure) in two replications, ahead of its literal counterpart at all but one evaluation.
 
@@ -239,13 +222,6 @@ Why the residual gap to the hand-crafted family ($27\%$ vs.\ $70\%$)? On commitm
 	extbf{Freezing alone is not the mechanism.} The IPL differs from the learned family in two ways at once: it is frozen, and it is anchored in a task-competent reference. Two ablations separate them. Fitting the same bounded listener by maximum likelihood on rollouts of the \emph{same} frozen baseline and then freezing it closes $3.2\%$ ($0.849\pm.012$, $t{=}0.2$); freezing the converged full-context listener outright and using it as a static reward closes $7.3\%$ ($0.853\pm.016$, $t{=}0.4$). Neither is distinguishable from baseline, and both are beaten by the still \emph{co-adapting} bounded listener with recursion ($34.8\%$). Removing co-adaptation therefore buys nothing on its own: what separates the IPL is what its listener credits, not that it stopped moving. The first ablation also shows why. A decoder fit to a non-communicative policy has little to learn (held-out accuracy $.44$ against a $.33$ chance level), whereas the IPL never needs signal to be present in the data, because it queries the reference policy counterfactually under each candidate meaning. Clause (b) of the principle is thus not an interpretation of the IPL's success but a tested condition for it.
 
 \textbf{One recipe, three task variants; robustness.} The winning recipe (progress, $\lambda{=}0.3$, VOI, frozen) transfers untuned to two structurally distinct variants of the same environment family ($n{=}8$ seeds each): five meanings closes $82\%$ ($t=3.98$, $p=.0014$, surviving Bonferroni), minefield $61\%$ ($t=5.2$, $p<.001$)---majority-gap closure in both. The recipe is a plateau, not a tuned point: $0.894$--$0.925$ across the $\lambda \in \{0.1,0.3\}\times$VOI grid (low end at $\lambda{=}0.1$, uniform weighting; 3 seeds/cell), with a cliff at $\lambda{=}0.6$ under VOI weighting ($0.450\pm.203$; $0.823$ uniform)---the same $\lambda$ that is the \emph{optimum} for the bounded learned-pragmatic reward: the safe weight range scales inversely with reward magnitude. Zero-shot cross-play retains $92$--$94\%$ of self-play reward (no worse than baseline's cross-seed transfer); at $16\times$ parameters the qualitative ordering is unchanged though the premium shrinks---readers strengthen.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.84\columnwidth]{img/info_profile.png}
-\caption{Per-timestep decode accuracy of a fresh post-hoc probe on converged behavior. In the early decision window the progress-listener scouts carry the most decodable intent while oracle scouts---whose teams never rely on motion---are the \emph{least} legible early: legibility is bought exactly when the partner is still deciding.}
-\label{fig:info_profile}
-\end{figure}
 
 \subsection{When Does Pragmatism Pay? A Boundary Map}
 \label{ssec:boundary}
@@ -260,13 +236,13 @@ We vary the two quantities that should govern the effect---how much early intent
 
 \begin{table}[t]
 \centering
-\caption{When pragmatism pays. Each row is a condition varied to failure; ``gain'' is relative to the matched baseline.}
+\caption{When pragmatism pays. Each row states a requirement and the setting in which we deliberately violated it; the last column is the gain that survives the violation, relative to that setting's own baseline. The n.s.\ entries are the result, not missing evidence: remove the requirement and the method stops working.}
 \label{tab:boundary}
 \small
 \setlength{\tabcolsep}{4pt}
 \begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.42\columnwidth}>{\raggedright\arraybackslash}p{0.34\columnwidth}c@{}}
 \toprule
-\textbf{Requirement} & \textbf{Violated by} & \textbf{Gain} \\
+\textbf{Requirement} & \textbf{Violated by} & \textbf{Gain left} \\
 \midrule
 Premium exists & Pref.\ spread; $4\times$ cost & n.s. \\
 Partner observes speaker & Blind partner & $-0.11$ \\
@@ -308,7 +284,7 @@ The same discipline applies to our own terminal budget, and it is why we report 
 \subsection{Environment B: The Cost of Signaling with Nothing to Say}
 \label{ssec:results_spread}
 
-Environment B measures what a communicative reward costs when there is nothing to say (converged 400-cycle budget, 5 seeds; full table and figures in Appendix~\ref{app:envb}). The oracle confirms the near-zero premium ($1.93$ vs.\ $1.86$, $+0.07\pm.08$, n.s.; an earlier 150-cycle evaluation put the oracle \emph{below} baseline---the pre-convergence hazard of Sec.~\ref{ssec:results_dynamics}, which also inflated the miscalibration tax below from $9\%$ to $46\%$). Calibrated learned listeners are a free add-on: task reward at baseline ($1.93\pm.06$ literal, $1.87\pm.02$ recursed), communicative reward at genuinely \emph{positive} information gain ($+0.21$/$+0.22$), the recursion again extracting more decodable signal than literal decoding (listener accuracy $.681$ vs.\ $.655$). Miscalibration is a tax with a free diagnostic: the exclusivity listener's own reward is stuck \emph{below} the uninformative level ($-1.83$; its margin demand is geometrically unsatisfiable) and it costs $9\%$ of task reward ($1.69$, $t=2.3$, suggestive). A post-hoc coda sharpens the diagnosis: that condition's behavior is the \emph{most} decodable of all to a fresh probe ($.700\pm.008$ vs.\ $.665\pm.007$, $t=3.2$, uncorrected), yet its own listener never credits it---miscalibration is a vocabulary mismatch, not an absence of signal, and a reward persistently below its uninformative level certifies it at zero measurement cost.
+Environment B measures what a communicative reward costs when there is nothing to say (converged 400-cycle budget, 5 seeds; full numbers in Appendix~\ref{app:envb}). The oracle confirms the near-zero premium ($1.93$ vs.\ $1.86$, $+0.07\pm.08$, n.s.; an earlier 150-cycle evaluation put the oracle \emph{below} baseline---the pre-convergence hazard of Sec.~\ref{ssec:results_dynamics}, which also inflated the miscalibration tax below from $9\%$ to $46\%$). Calibrated learned listeners are a free add-on: task reward at baseline ($1.93\pm.06$ literal, $1.87\pm.02$ recursed), communicative reward at genuinely \emph{positive} information gain ($+0.21$/$+0.22$), the recursion again extracting more decodable signal than literal decoding (listener accuracy $.681$ vs.\ $.655$). Miscalibration is a tax with a free diagnostic: the exclusivity listener's own reward is stuck \emph{below} the uninformative level ($-1.83$; its margin demand is geometrically unsatisfiable) and it costs $9\%$ of task reward ($1.69$, $t=2.3$, suggestive). A post-hoc coda sharpens the diagnosis: that condition's behavior is the \emph{most} decodable of all to a fresh probe ($.700\pm.008$ vs.\ $.665\pm.007$, $t=3.2$, uncorrected), yet its own listener never credits it---miscalibration is a vocabulary mismatch, not an absence of signal, and a reward persistently below its uninformative level certifies it at zero measurement cost.
 
 \subsection{The Meaning-Space Axis: Discrete, Continuous, Self-Assigned}
 \label{ssec:continuous}
@@ -332,37 +308,13 @@ Density is itself a finding. The hand-crafted progress listener, ported for free
 \subsubsection{Self-Assigned Meanings: Legible Latents}
 \label{ssec:bottleneck}
 
-The continuum still assumed the meaning is given. The last step drops that too: the meaning becomes a latent the agent itself computes. The scout's private observation---enriched with two decoy bearings and two noise channels, only the true bearing decision-relevant---now reaches its policy only through a variational encoder (four dimensions, KL to $\mathcal{N}(0,I)$ at $\beta{=}10^{-3}$) whose output $z$ is concatenated with the public observation to drive the action head. The wiring is InfoBot's \cite{goyal2019infobot}, sign-flipped: InfoBot \emph{minimizes} goal information in behavior; we keep its KL---bounding $I(Z;\text{private})$---and add a listener bonus on the action channel. The combination, not the encoder, is what is new here, and the reward mechanism itself has a free-latent ancestor in Any-Play's teammate-side skill discriminator \cite{lucas2022anyplay} (Table~\ref{tab:delta}). Because $z$ is the only route from private information to behavior, what it carries is decided by task pressure and compression---not by us---and $\Rcomm$ becomes the particle recursion of Sec.~\ref{ssec:continuous} aimed at the speaker's own per-episode posterior mean $\mu_z$: make the representation that drives your decisions readable from how you act. All conditions share the architecture and $\beta$, so the anchors price communication, not capacity.
+The continuum still assumed the meaning is given. The last step drops that too: the meaning becomes a latent the agent itself computes. The scout's private observation---enriched with two decoy bearings and two noise channels, only the true bearing decision-relevant---now reaches its policy only through a variational encoder (four dimensions, KL to $\mathcal{N}(0,I)$ at $\beta{=}10^{-3}$) whose output $z$ is concatenated with the public observation to drive the action head. The wiring is InfoBot's \cite{goyal2019infobot}, sign-flipped: InfoBot \emph{minimizes} goal information in behavior; we keep its KL---bounding $I(Z;\text{private})$---and add a listener bonus on the action channel. The combination, not the encoder, is what is new here, and the reward mechanism itself has a free-latent ancestor in Any-Play's teammate-side skill discriminator \cite{lucas2022anyplay}. Because $z$ is the only route from private information to behavior, what it carries is decided by task pressure and compression---not by us---and $\Rcomm$ becomes the particle recursion of Sec.~\ref{ssec:continuous} aimed at the speaker's own per-episode posterior mean $\mu_z$: make the representation that drives your decisions readable from how you act. All conditions share the architecture and $\beta$, so the anchors price communication, not capacity.
 
 The premium survives the inversion: an oracle advantage exists for a latent whose content the designer never specified (bottleneck baseline $1.001\pm.006$, oracle $1.089\pm.013$, $n{=}8$, $6\times$ s.e.; blind commitment near chance, $.373$ vs.\ $1/3$). The paper's ordering then replicates a fourth time, now with no hand-specified meaning anywhere in the loop: the literal contrastive reward on $\mu_z$ is inert ($8.5\%$, $t{=}0.8$), while one Sinkhorn iteration closes $25.7\%$ ($t{=}2.3$ at $\lambda{=}.3$; $23.0\%$ at $\lambda{=}.6$, suggestive), with commitment $.890$--$.895$ against $.883$/$.907$ anchors.
 
 Post-hoc probes separate what the latent carries from how much of it shows (Fig.~\ref{fig:transparency}). Content is selected by task pressure, not by us: the true bearing is linearly decodable from $z$ at $R^2{=}.999$ in every condition, the decoys only at ${\approx}.21$ and the noise channels partially ($.45$--$.52$). Exposure is what the reward moves: with matched InfoNCE critics, $I(Z;\text{behavior})$ rises from $1.762\pm.004$ to $1.781$ to $1.814\pm.010$ (baseline, literal, recursed; $t{=}4.6$). The private side is held fixed by construction and stays fixed in fact: the VIB rate, a variational \emph{upper} bound on $I(Z;\text{private})$, is statistically indistinguishable across the three conditions ($10.61\pm.25$, $10.55\pm.11$, $10.54\pm.06$ nats). Compression and task pressure choose \emph{what} enters $z$; the pragmatic reward chooses \emph{how much of it shows}. The transparency coefficient $I(Z;\text{behavior})/I(Z;\text{private})$ rises accordingly ($.296$ to $.303$ at $K{=}1023$, $t{=}3.4$, post hoc), though its \emph{level} should be read as indicative only: the InfoNCE denominator is a capacity-dependent lower bound that moves from $5.17$ nats at $K{=}255$ to $5.96$ at $K{=}1023$. The dissociation itself does not depend on it, resting on the well-estimated numerator and the flat VIB rate. A compression sweep separates the two dials. Raising $\beta$ to $3{\times}10^{-2}$ drives the budget from $10.6$ to $3.1$ nats and collapses noise leakage ($R^2$ from $.49$ to $.11$) while the true bearing stays decodable ($\ge.97$), and the readability gap persists at every $\beta$ (task gains unresolved at $n{=}4$ per point).
 
-We call such representations \emph{legible latents}. Table~\ref{tab:delta} places the claim among its relatives. Prior exposure-direction rewards target \emph{given} private variables \cite{strouse2018learning,tian2020implicit,fuchs2021theory,liu2025active,faylor2025teammates}, and prior latent-discriminability rewards target \emph{free} skill noise \cite{eysenbach2019diversity,lucas2022anyplay}. The nearest relative is VQ-VIB \cite{tucker2022trading}, a learned information-bearing latent read by a teammate, but over an explicit channel and with no behavior-legibility reward or certification. To our knowledge, the certified premium for an information-bearing learned latent, and the content-versus-exposure dissociation that verifies it (cf.\ amnesic probing \cite{elazar2021amnesic}), appear here first.
-
-\begin{table}[t]
-\centering
-\caption{The self-assigned regime against its nearest relatives. The third column is this paper's own protocol; prior work predates it.}
-\label{tab:delta}
-\small
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}lccc@{}}
-\toprule
- & \textbf{$z$ learned,} & \textbf{Teammate} & \textbf{Certified} \\
- & \textbf{info-bearing} & \textbf{decoder} & \textbf{premium} \\
-\midrule
-DIAYN family \cite{eysenbach2019diversity} & no (free) & no & no \\
-Any-Play \cite{lucas2022anyplay} & no (free) & yes & no \\
-InfoBot \cite{goyal2019infobot} & yes (hidden) & no & no \\
-Strouse \cite{strouse2018learning} & no (given) & no & no \\
-Caselles-Dupr\'e \cite{caselles2022pragmatically} & no (given) & no & no \\
-Tian \cite{tian2020implicit} & no (given) & yes & no \\
-MAAL \cite{liu2025active} & no (given) & yes & no \\
-VQ-VIB \cite{tucker2022trading} & yes & yes & no \\
-This work & yes & yes & yes \\
-\bottomrule
-\end{tabular}
-\end{table}
+We call such representations \emph{legible latents}. The claim sits among close relatives. Prior exposure-direction rewards target \emph{given} private variables \cite{strouse2018learning,tian2020implicit,fuchs2021theory,liu2025active,faylor2025teammates}, and prior latent-discriminability rewards target \emph{free} skill noise \cite{eysenbach2019diversity,lucas2022anyplay}. The nearest relative is VQ-VIB \cite{tucker2022trading}, a learned information-bearing latent read by a teammate, but over an explicit channel and with no behavior-legibility reward or certification. To our knowledge, the certified premium for an information-bearing learned latent, and the content-versus-exposure dissociation that verifies it (cf.\ amnesic probing \cite{elazar2021amnesic}), appear here first.
 
 \begin{figure}[t]
 \centering
@@ -465,50 +417,10 @@ Evaluation & every 10 cyc.\ (64 eps.) \\
 
 All environments, training, aggregation, and figure code will be released, with launch specifications determining every Environment A run exactly (JSON specs including seeds) and the Environment B command line documented in the repository README. One disclosed bug: an earlier snapshot evaluated the bounded-listener ear condition without the posterior injection it was trained with, producing an artifactual $0.551$ that persists in the archived histories; the corrected evaluation ($0.841\pm.023$), reproducible from the released checkpoints via the included re-evaluation script, is what we report.
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{img/scout_trajectories.png}
-\caption{One Environment A evaluation episode under three conditions (selected from 60 candidates to maximize the baseline-vs-recipe commitment-time difference; statistics are in Table~\ref{tab:scout}). Squares are sites (target filled); cross and dashed circle mark the pickup waypoint; trajectories darken with time; diamond = the supporter's commitment moment. The baseline supporter commits at $t{=}17$; the pragmatically rewarded supporter commits at $t{=}1$, matching the oracle.}
-\label{fig:scout_traj}
-\end{figure}
-
 \section{Environment B Details}
 \label{app:envb}
 
 Three agents and three colored landmarks in a continuous arena; each agent holds a private color preference; the team is rewarded for matched coverage, penalized for distance and collisions. Meanings are the three colors; every agent receives $\Rcomm$ under its own listener; $\lambda=0.1$.
-
-\begin{table}[h]
-\centering
-\caption{Environment B at the converged budget (400 cycles; mean $\pm$ s.e.m., 5 seeds). $\Rcomm$ on the information-gain scale (0 = uninformative); List.\ acc.\ is the co-trained listener's converged accuracy.}
-\label{tab:envb}
-\setlength{\tabcolsep}{3.4pt}
-\begin{tabular}{lccccc}
-\toprule
-\textbf{Condition} & $\Rext$ & Spec. & $\Rcomm$ & List. & Post-hoc \\
-\midrule
-Baseline & $1.86\pm.06$ & $.859$ & --- & --- & $.665$ \\
-Oracle & $1.93\pm.06$ & $.862$ & --- & --- & $.672$ \\
-Simple $L_0$ & $1.81\pm.05$ & $.849$ & $-0.92$ & --- & $.684$ \\
-Exclusivity $L_0$ & $1.69\pm.05$ & $.832$ & $-1.83$ & --- & $.700$ \\
-Learned $\Ltheta$ & $\mathbf{1.93\pm.06}$ & $.847$ & $+0.21$ & $.655$ & $.672$ \\
-Learned + RSA & $1.87\pm.02$ & $.837$ & $\mathbf{+0.22}$ & $\mathbf{.681}$ & $.684$ \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.9\columnwidth]{img/comm_reward.png}
-\caption{Achieved communicative reward $\Rcomm$ over training (each condition under its own listener; 0 = uninformative). Calibration levels separate: learned listeners cross into positive information gain; the exclusivity listener never leaves negative territory---the miscalibration certificate.}
-\label{fig:comm_reward}
-\end{figure}
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=\columnwidth]{img/trajectories.png}
-\caption{A converged evaluation episode under three conditions. Squares are landmarks (color = category); trajectories are colored by the agent's private preference and darken with time. The exclusivity-listener agents sweep the arena and settle off-landmark---costly motion signaling nothing; the learned-pragmatic agents take direct, mutually distinct paths.}
-\label{fig:trajectories}
-\end{figure}
 
 \textbf{The weight $\lambda$ (exploratory, 150 cycles, 2 seeds/point).} With the learned listener, $\lambda$ behaves like a dial along an information--performance frontier, up to genuinely positive information gain at a large task cost at $\lambda=1$; with the exclusivity listener no operating point buys information---the reward is ignored at small $\lambda$ and destructive at moderate $\lambda$. Calibration is what turns $\lambda$ from a landmine into a dial.
 

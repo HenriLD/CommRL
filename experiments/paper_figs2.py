@@ -77,47 +77,12 @@ def fig_meaning_axis(figdir):
 
 
 def fig_transparency(figdir):
-    """Left column: two zoomed strips sharing the condition axis, each on its
-    own scale so the dissociation is legible (private near-flat below the
-    critic ceiling; behaviour rising with the reward). Right: the beta sweep."""
+    """What the compression dial does to the latent's contents: stronger beta
+    prunes the irrelevant private channels while the decision-relevant one
+    survives. The two information quantities that motivate this live in the
+    text -- as flat and rising numbers they carried no shape worth plotting."""
     use_style()
-    fig = plt.figure(figsize=(5.4, 2.5))
-    gs = fig.add_gridspec(2, 2, width_ratios=[1.0, 1.12],
-                          height_ratios=[1, 1], hspace=0.28, wspace=0.46)
-    ax_priv = fig.add_subplot(gs[0, 0])
-    ax_beh = fig.add_subplot(gs[1, 0], sharex=ax_priv)
-    axR = fig.add_subplot(gs[:, 1])
-
-    # values from the K=1023 critic (results_bn/probes_k1023.json), the most
-    # converged lower bound; ceiling log(1024)=6.93
-    conds = ["base", "literal", "$+$RSA"]
-    x = np.arange(3)
-    i_priv = np.array([5.95, 5.98, 5.98]); i_priv_se = np.array([.022, .012, .018])
-    i_beh = np.array([1.762, 1.781, 1.814]); i_beh_se = np.array([.004, .006, .010])
-
-    # private strip: flat, sitting well below the critic ceiling (not pinned)
-    ax_priv.axhline(6.93, color="#999999", ls=(0, (4, 3)), lw=1.0)
-    ax_priv.text(2.02, 6.93, "ceiling", fontsize=6.8, color="#888888",
-                 ha="right", va="bottom")
-    ax_priv.errorbar(x, i_priv, yerr=i_priv_se, fmt="o-", color=C_PRIV, ms=5,
-                     lw=1.6, capsize=3)
-    ax_priv.set_ylim(5.7, 7.05)
-    ax_priv.set_yticks([5.8, 6.2, 6.6, 7.0])
-    ax_priv.set_ylabel("$I(Z;\\mathrm{priv})$", fontsize=8.5)
-    ax_priv.tick_params(labelbottom=False)
-    ax_priv.set_title("private flat", fontsize=8, pad=3)
-
-    # behaviour strip: rises with the reward (own zoomed scale)
-    ax_beh.errorbar(x, i_beh, yerr=i_beh_se, fmt="o-", color=C_BEH, ms=5,
-                    lw=1.6, capsize=3)
-    ax_beh.set_ylim(1.72, 1.85)
-    ax_beh.set_yticks([1.75, 1.80, 1.85])
-    ax_beh.set_ylabel("$I(Z;\\mathrm{beh})$", fontsize=8.5)
-    ax_beh.set_xticks(x)
-    ax_beh.set_xticklabels(conds)
-    ax_beh.set_title("behaviour rises ($t{\\approx}4.6$)", fontsize=8, pad=3)
-
-    # right: beta sweep, R^2 of each private channel decoded from z
+    fig, axR = plt.subplots(figsize=(3.5, 2.4))
     beta = np.array([1e-3, 3e-3, 1e-2, 3e-2])
     r2_true = np.array([0.999, 0.999, 0.996, 0.97])
     r2_decoy = np.array([0.21, 0.19, 0.12, 0.15])
@@ -130,8 +95,9 @@ def fig_transparency(figdir):
     axR.set_ylabel("decoded $R^2$ from $z$")
     axR.set_ylim(-0.03, 1.06)
     axR.legend(frameon=False, loc="center right", fontsize=7.4, handletextpad=0.4)
-    axR.set_title("leakage pruned, content kept", fontsize=8, pad=3)
+    axR.set_title("what survives compression", fontsize=8.5, pad=4)
 
+    fig.tight_layout()
     fig.savefig(os.path.join(figdir, "transparency.png"))
     plt.close(fig)
     print("wrote transparency.png")

@@ -1,0 +1,638 @@
+[
+ {
+  "name": "baseline_s4",
+  "args": [
+   "--condition",
+   "baseline",
+   "--seed",
+   "4",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "baseline_s5",
+  "args": [
+   "--condition",
+   "baseline",
+   "--seed",
+   "5",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "baseline_s6",
+  "args": [
+   "--condition",
+   "baseline",
+   "--seed",
+   "6",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "baseline_s7",
+  "args": [
+   "--condition",
+   "baseline",
+   "--seed",
+   "7",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "oracle_s4",
+  "args": [
+   "--condition",
+   "oracle",
+   "--seed",
+   "4",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "oracle_s5",
+  "args": [
+   "--condition",
+   "oracle",
+   "--seed",
+   "5",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "oracle_s6",
+  "args": [
+   "--condition",
+   "oracle",
+   "--seed",
+   "6",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "oracle_s7",
+  "args": [
+   "--condition",
+   "oracle",
+   "--seed",
+   "7",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "blind_s4",
+  "args": [
+   "--condition",
+   "blind",
+   "--seed",
+   "4",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "blind_s5",
+  "args": [
+   "--condition",
+   "blind",
+   "--seed",
+   "5",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "blind_s6",
+  "args": [
+   "--condition",
+   "blind",
+   "--seed",
+   "6",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "blind_s7",
+  "args": [
+   "--condition",
+   "blind",
+   "--seed",
+   "7",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "gapprog_s0",
+  "args": [
+   "--condition",
+   "gapprog",
+   "--seed",
+   "0",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2",
+   "--lam",
+   "0.3",
+   "--voi",
+   "0.2"
+  ]
+ },
+ {
+  "name": "gapprog_s1",
+  "args": [
+   "--condition",
+   "gapprog",
+   "--seed",
+   "1",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2",
+   "--lam",
+   "0.3",
+   "--voi",
+   "0.2"
+  ]
+ },
+ {
+  "name": "gapprog_s2",
+  "args": [
+   "--condition",
+   "gapprog",
+   "--seed",
+   "2",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2",
+   "--lam",
+   "0.3",
+   "--voi",
+   "0.2"
+  ]
+ },
+ {
+  "name": "gapprog_s3",
+  "args": [
+   "--condition",
+   "gapprog",
+   "--seed",
+   "3",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2",
+   "--lam",
+   "0.3",
+   "--voi",
+   "0.2"
+  ]
+ },
+ {
+  "name": "gapprog_s4",
+  "args": [
+   "--condition",
+   "gapprog",
+   "--seed",
+   "4",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2",
+   "--lam",
+   "0.3",
+   "--voi",
+   "0.2"
+  ]
+ },
+ {
+  "name": "gapprog_s5",
+  "args": [
+   "--condition",
+   "gapprog",
+   "--seed",
+   "5",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2",
+   "--lam",
+   "0.3",
+   "--voi",
+   "0.2"
+  ]
+ },
+ {
+  "name": "gapprog_s6",
+  "args": [
+   "--condition",
+   "gapprog",
+   "--seed",
+   "6",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2",
+   "--lam",
+   "0.3",
+   "--voi",
+   "0.2"
+  ]
+ },
+ {
+  "name": "gapprog_s7",
+  "args": [
+   "--condition",
+   "gapprog",
+   "--seed",
+   "7",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2",
+   "--lam",
+   "0.3",
+   "--voi",
+   "0.2"
+  ]
+ },
+ {
+  "name": "learned_pre_prag_s0",
+  "args": [
+   "--condition",
+   "learned_pre_prag",
+   "--seed",
+   "0",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2",
+   "--lam",
+   "0.6",
+   "--voi",
+   "0.2"
+  ]
+ },
+ {
+  "name": "learned_pre_prag_s1",
+  "args": [
+   "--condition",
+   "learned_pre_prag",
+   "--seed",
+   "1",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2",
+   "--lam",
+   "0.6",
+   "--voi",
+   "0.2"
+  ]
+ },
+ {
+  "name": "learned_pre_prag_s2",
+  "args": [
+   "--condition",
+   "learned_pre_prag",
+   "--seed",
+   "2",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2",
+   "--lam",
+   "0.6",
+   "--voi",
+   "0.2"
+  ]
+ },
+ {
+  "name": "learned_pre_prag_s3",
+  "args": [
+   "--condition",
+   "learned_pre_prag",
+   "--seed",
+   "3",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2",
+   "--lam",
+   "0.6",
+   "--voi",
+   "0.2"
+  ]
+ },
+ {
+  "name": "learned_pre_prag_s4",
+  "args": [
+   "--condition",
+   "learned_pre_prag",
+   "--seed",
+   "4",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2",
+   "--lam",
+   "0.6",
+   "--voi",
+   "0.2"
+  ]
+ },
+ {
+  "name": "learned_pre_prag_s5",
+  "args": [
+   "--condition",
+   "learned_pre_prag",
+   "--seed",
+   "5",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2",
+   "--lam",
+   "0.6",
+   "--voi",
+   "0.2"
+  ]
+ },
+ {
+  "name": "learned_pre_prag_s6",
+  "args": [
+   "--condition",
+   "learned_pre_prag",
+   "--seed",
+   "6",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2",
+   "--lam",
+   "0.6",
+   "--voi",
+   "0.2"
+  ]
+ },
+ {
+  "name": "learned_pre_prag_s7",
+  "args": [
+   "--condition",
+   "learned_pre_prag",
+   "--seed",
+   "7",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2",
+   "--lam",
+   "0.6",
+   "--voi",
+   "0.2"
+  ]
+ },
+ {
+  "name": "inforeg_s0",
+  "args": [
+   "--condition",
+   "inforeg",
+   "--seed",
+   "0",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2",
+   "--lam",
+   "0.3",
+   "--voi",
+   "0.2"
+  ]
+ },
+ {
+  "name": "inforeg_s1",
+  "args": [
+   "--condition",
+   "inforeg",
+   "--seed",
+   "1",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2",
+   "--lam",
+   "0.3",
+   "--voi",
+   "0.2"
+  ]
+ },
+ {
+  "name": "inforeg_s2",
+  "args": [
+   "--condition",
+   "inforeg",
+   "--seed",
+   "2",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2",
+   "--lam",
+   "0.3",
+   "--voi",
+   "0.2"
+  ]
+ },
+ {
+  "name": "inforeg_s3",
+  "args": [
+   "--condition",
+   "inforeg",
+   "--seed",
+   "3",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2",
+   "--lam",
+   "0.3",
+   "--voi",
+   "0.2"
+  ]
+ },
+ {
+  "name": "inforeg_s4",
+  "args": [
+   "--condition",
+   "inforeg",
+   "--seed",
+   "4",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2",
+   "--lam",
+   "0.3",
+   "--voi",
+   "0.2"
+  ]
+ },
+ {
+  "name": "inforeg_s5",
+  "args": [
+   "--condition",
+   "inforeg",
+   "--seed",
+   "5",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2",
+   "--lam",
+   "0.3",
+   "--voi",
+   "0.2"
+  ]
+ },
+ {
+  "name": "inforeg_s6",
+  "args": [
+   "--condition",
+   "inforeg",
+   "--seed",
+   "6",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2",
+   "--lam",
+   "0.3",
+   "--voi",
+   "0.2"
+  ]
+ },
+ {
+  "name": "inforeg_s7",
+  "args": [
+   "--condition",
+   "inforeg",
+   "--seed",
+   "7",
+   "--cycles",
+   "400",
+   "--device",
+   "cuda",
+   "--threads",
+   "2",
+   "--lam",
+   "0.3",
+   "--voi",
+   "0.2"
+  ]
+ }
+]
