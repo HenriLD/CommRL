@@ -144,6 +144,50 @@ def evaluate(actor, cond, listener, seed, n_envs=64, device=torch.device("cpu"),
     return {k: v / steps for k, v in tot.items()}
 
 
+def pretrain_listener_on_ref(listener, args, device, n_resets=20, steps=2000):
+    """Fit the bounded listener by ML on rollouts of the frozen, seed-disjoint,
+    non-communicative baseline (the same checkpoint the IPL inverts), using the
+    pre-commitment window so the fit cannot be earned from post-key motion.
+    Returns nothing; the listener is trained in place and then frozen by the
+    caller."""
+    ref_ckpt = torch.load(args.ref_ckpt, map_location="cpu", weights_only=True)
+    ref_actor = Actor(obs_dim=S.OBS_DIM, act_dim=S.ACT_DIM)
+    ref_actor.load_state_dict(ref_ckpt["actor"])
+    ref_actor.to(device).eval()
+    obs_l, act_l, tgt_l = [], [], []
+    with torch.no_grad():
+        for r in range(n_resets):
+            env = S.ScoutSupportEnv(args.n_envs, seed=args.seed * 977 + r)
+            o = env.reset()
+            for t in range(S.EPISODE_LEN):
+                a, _ = ref_actor.sample(o.to(device), deterministic=False)
+                a = a.cpu()
+                pre = o[:, 0, S.KEY_INDEX] < 0.5          # pre-commitment only
+                if pre.any():
+                    obs_l.append(o[pre, 0].clone())
+                    act_l.append(a[pre, 0].clone())
+                    tgt_l.append(env.target[pre].clone())
+                o, _, _ = env.step(a)
+    X = torch.cat(obs_l).to(device)
+    A = torch.cat(act_l).to(device)
+    Y = torch.cat(tgt_l).to(device)
+    n_ho = max(1, X.shape[0] // 5)                     # held-out split, so the
+    Xh, Ah, Yh = X[:n_ho], A[:n_ho], Y[:n_ho]          # reported fit is not
+    X, A, Y = X[n_ho:], A[n_ho:], Y[n_ho:]             # memorization
+    opt = torch.optim.Adam(listener.parameters(), lr=1e-3)
+    g = torch.Generator().manual_seed(args.seed + 4242)
+    for it in range(steps):
+        i = torch.randint(0, X.shape[0], (512,), generator=g).to(device)
+        loss = F.cross_entropy(listener(X[i], A[i]), Y[i])
+        opt.zero_grad(); loss.backward(); opt.step()
+    with torch.no_grad():
+        acc = (listener(X, A).argmax(-1) == Y).float().mean().item()
+        acc_h = (listener(Xh, Ah).argmax(-1) == Yh).float().mean().item()
+    print(f"[frozen listener] pretrained on {X.shape[0]} pre-key transitions "
+          f"from {args.ref_ckpt}; train acc {acc:.3f}, held-out {acc_h:.3f} "
+          f"(chance {1/S.N_MEANINGS:.3f})", flush=True)
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--condition", required=True,
@@ -152,6 +196,7 @@ def main():
                             "ear", "learned_ear", "filter_ear",
                             "learned_act", "learned_act_prag", "learned_act_ear",
                             "learned_pre", "learned_pre_prag",
+                            "learned_frozen_prag", "learned_frozensat_prag",
                             "inforeg", "partner_belief",
                             "ipl", "ipl_prag"])
     p.add_argument("--seed", type=int, default=0)
@@ -184,6 +229,8 @@ def main():
     p.add_argument("--alt_policy", action="store_true",
                    help="draw RSA alternative actions from the current policy "
                         "instead of uniform random (proper RSA alternative set)")
+    p.add_argument("--frozen_ckpt", default=None,
+                   help="converged learned listener to freeze (frozensat)")
     p.add_argument("--ref_ckpt",
                    default=os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                         "results_scout3", "baseline_s9", "model.pt"),
@@ -203,11 +250,15 @@ def main():
                                       "learned_act", "learned_act_prag",
                                       "learned_act_ear",
                                       "learned_pre", "learned_pre_prag",
+                                      "learned_frozen_prag", "learned_frozensat_prag",
                                       "inforeg", "partner_belief")
-    listener_inputs = ("act" if args.condition.startswith(("learned_act", "learned_pre"))
+    listener_inputs = ("act" if (args.condition.startswith(("learned_act", "learned_pre"))
+                         or args.condition == "learned_frozen_prag")
                        else "partner" if args.condition == "partner_belief"
                        else "full")
     listener_prekey = args.condition.startswith("learned_pre")
+    frozen_listener = args.condition == "learned_frozen_prag"
+    frozen_sat = args.condition == "learned_frozensat_prag"
     # external baselines: Strouse-style variational I(A;M|S) needs a second,
     # state-only decoder; Tian-style partner belief reads the supporter's obs
     inforeg = args.condition == "inforeg"
@@ -232,6 +283,27 @@ def main():
     listener = S.ScoutListener(inputs=listener_inputs).to(device) if use_listener else None
     opt_l = (torch.optim.Adam(listener.parameters(), lr=args.listener_lr)
              if use_listener else None)
+    if frozen_sat:
+        # Reviewer-requested cell: freeze the CONVERGED, saturated, full-context
+        # learned listener and use it as a static reward. Isolates "frozen"
+        # from "restricted/competence-grounded".
+        sat_ck = args.frozen_ckpt or f"results_scout3/learned_s{args.seed}/model.pt"
+        sd = torch.load(sat_ck, map_location="cpu", weights_only=True)["listener"]
+        listener.load_state_dict(sd)
+        for prm in listener.parameters():
+            prm.requires_grad_(False)
+        opt_l = None
+        print(f"[frozen-saturated listener] loaded {sat_ck}", flush=True)
+    if frozen_listener:
+        # Ablation separating the IPL's two changes. The IPL is both frozen
+        # (cannot co-adapt) and grounded in a task-competent reference policy.
+        # Here we keep the freeze but drop the grounding: fit the same bounded
+        # listener by maximum likelihood on rollouts of the SAME frozen
+        # seed-disjoint baseline, then freeze it for the whole run.
+        pretrain_listener_on_ref(listener, args, device)
+        for prm in listener.parameters():
+            prm.requires_grad_(False)
+        opt_l = None
     listener2 = S.ScoutListener(inputs="state").to(device) if inforeg else None
     opt_l2 = (torch.optim.Adam(listener2.parameters(), lr=args.listener_lr)
               if inforeg else None)
@@ -315,7 +387,7 @@ def main():
                 b_obs, b_act, b_rext, b_rcomm, b_next, b_done, b_pref = buf.sample(args.batch)
                 b_target = b_pref[:, 0]
 
-                if use_listener:
+                if use_listener and not (frozen_listener or frozen_sat):
                     l_in = b_obs[:, 1] if pbelief else b_obs[:, 0]
                     logits = listener(l_in, b_act[:, 0])
                     if listener_prekey:
@@ -332,7 +404,9 @@ def main():
                     if lam > 0:
                         with torch.no_grad():
                             if args.condition in ("learned_prag", "learned_act_prag",
-                                                  "learned_pre_prag"):
+                                                  "learned_pre_prag",
+                                                  "learned_frozen_prag",
+                                                  "learned_frozensat_prag"):
                                 if args.alt_policy:
                                     o_rep = b_obs[:, 0].repeat_interleave(16, dim=0)
                                     alt, _ = actor.sample(o_rep)
