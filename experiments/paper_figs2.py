@@ -41,7 +41,7 @@ def fig_meaning_axis(figdir):
     x = np.arange(3)
 
     use_style()
-    fig, ax = plt.subplots(figsize=(5.2, 3.1))
+    fig, ax = plt.subplots(figsize=(5.2, 2.7))
     ax.axhline(0, **{"color": "#666666", "ls": "--", "lw": 1.4})
     ax.axhline(1, **{"color": "#111111", "ls": ":", "lw": 1.6})
     ax.text(0.5, 0.045, "baseline", fontsize=7.5, color="#666666", va="bottom", ha="center")
@@ -78,7 +78,7 @@ def fig_meaning_axis(figdir):
 
 def fig_transparency(figdir):
     use_style()
-    fig, (axL, axR) = plt.subplots(1, 2, figsize=(5.4, 2.5))
+    fig, (axL, axR) = plt.subplots(1, 2, figsize=(5.4, 2.15))
 
     # ---- left: the two information quantities across conditions ----
     conds = ["base", "literal", "+RSA"]
