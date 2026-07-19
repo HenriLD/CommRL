@@ -229,6 +229,8 @@ def main():
     p.add_argument("--alt_policy", action="store_true",
                    help="draw RSA alternative actions from the current policy "
                         "instead of uniform random (proper RSA alternative set)")
+    p.add_argument("--n_iter", type=int, default=1,
+                   help="RSA recursion depth N_r for pragmatic listeners")
     p.add_argument("--frozen_ckpt", default=None,
                    help="converged learned listener to freeze (frozensat)")
     p.add_argument("--ref_ckpt",
@@ -365,7 +367,8 @@ def main():
             if args.condition in HANDCRAFTED or args.condition == "filter_ear":
                 kind = "filter" if args.condition == "filter_ear" else args.condition
                 with torch.no_grad():
-                    rc = S.scout_comm_reward(env, a, kind, gen=gen, pre_pos=pre_pos)
+                    rc = S.scout_comm_reward(env, a, kind, gen=gen, pre_pos=pre_pos,
+                                         n_iter=args.n_iter)
                     r_comm[:, 0] = rc * (args.voi + (1 - args.voi) * pre_key)
             if ear:
                 with torch.no_grad():
@@ -416,7 +419,7 @@ def main():
                                                      device=device) * 2 - 1
                                 rc = listener.comm_reward(b_obs[:, 0], b_act[:, 0],
                                                           b_target, pragmatic=True,
-                                                          alt_actions=alt)
+                                                          alt_actions=alt, n_iter=args.n_iter)
                             elif inforeg:
                                 # variational I(A; M | S): what the action adds
                                 # beyond the (masked) state
@@ -440,7 +443,7 @@ def main():
                                              device=device) * 2 - 1
                             rc = listener.comm_reward(b_obs[:, 0], b_act[:, 0],
                                                       b_target, pragmatic=True,
-                                                      alt_actions=alt)
+                                                      alt_actions=alt, n_iter=args.n_iter)
                         else:
                             rc = listener.comm_reward(b_obs[:, 0], b_act[:, 0],
                                                       b_target)
