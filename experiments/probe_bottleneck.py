@@ -83,7 +83,7 @@ class NCECritic(nn.Module):
                                 nn.Linear(hidden, emb))
         self.scale = emb ** -0.5
 
-    def bound(self, x, z, steps=600, batch=512, lr=1e-3, seed=0):
+    def bound(self, x, z, steps=600, batch=512, lr=1e-3, seed=0, k=N_PART):
         """Train InfoNCE and return the converged bound in nats
         (mean of the last 50 steps), capped at log(K+1)."""
         g = torch.Generator().manual_seed(seed)
@@ -91,7 +91,7 @@ class NCECritic(nn.Module):
         tail = []
         for it in range(steps):
             i = torch.randint(0, x.shape[0], (batch,), generator=g)
-            perm = torch.randint(0, x.shape[0], (batch, N_PART), generator=g)
+            perm = torch.randint(0, x.shape[0], (batch, k), generator=g)
             zs = torch.cat([z[i].unsqueeze(1), z[perm]], dim=1)
             e = self.fx(x[i])
             f = self.fz(zs)
@@ -99,7 +99,7 @@ class NCECritic(nn.Module):
             loss = F.cross_entropy(sc, torch.zeros(batch, dtype=torch.long))
             opt.zero_grad(); loss.backward(); opt.step()
             if it >= steps - 50:
-                tail.append(math.log(N_PART + 1) - loss.item())
+                tail.append(math.log(k + 1) - loss.item())
         return float(np.mean(tail))
 
 
@@ -131,7 +131,7 @@ def main():
                 r2_dec.append(ridge_r2(z, t))
             r2_noise = ridge_r2(z, priv[:, -B.N_NOISE:])
             i_beh = NCECritic(feats.shape[1]).bound(feats, z[ep_idx], seed=seed)
-            i_priv = NCECritic(B.PRIV_DIM).bound(priv, z, seed=seed)
+            i_priv = NCECritic(B.PRIV_DIM).bound(priv, z, seed=seed, k=255)
             rows.append({"seed": seed, "r2_true": r2_true,
                          "r2_decoy": float(np.mean(r2_dec)),
                          "r2_noise": r2_noise,
