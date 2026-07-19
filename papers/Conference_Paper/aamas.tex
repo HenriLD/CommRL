@@ -230,35 +230,9 @@ We vary the two quantities that should govern the effect---how much early intent
 
 \textbf{An empirical regularity, stated with its scope.} Wherever the premium is resolvable (point estimate $>3\times$ its s.e., fixed before analysis), the recipe captures a roughly constant fraction: an origin-constrained fit over all seven resolvable settings gives $\text{gain} \approx 0.51 \times \text{premium}$ (bootstrap $95\%$ CI $[0.42, 0.59]$). Two caveats are explicit. The two failure-mode settings below (ratio $0.37$) have the \emph{largest} premiums and dominate the fit; excluding them, the remaining five give $0.68\times$ (CI $[0.57,0.79]$, ratios $0.59$--$0.82$)---but that classification is post hoc, so $0.68$ is exploratory and $0.51$ primary. And gain and premium share each setting's baseline estimate, so their errors are correlated; the bootstrap resamples seeds within settings. All settings come from one environment family and one algorithm: this is a regularity of that family, not a law, and would be falsified by a resolvable-premium, healthy-channel environment with capture outside the fitted range.
 
-\textbf{Failure modes.} Where no premium is resolvable, no gain appears (preference spread $t{=}0.2$ at the converged budget; $4\times$ cost $t{=}1.4$). Where the premium is real but the partner too slow ($0.45$) or signaling too expensive ($2\times$), capture drops to $0.37\times$: the premium is partly unreachable at any signaling latency, or the scout rationally emits less. Where the channel is severed (blind), the reward does not merely stop helping---it \emph{hurts}, because the speaker pays for signals nobody receives. Table~\ref{tab:boundary} consolidates the map as a checklist; each row is a way we made the method fail.
+\textbf{Failure modes.} Where no premium is resolvable, no gain appears (preference spread $t{=}0.2$ at the converged budget; $4\times$ cost $t{=}1.4$). Where the premium is real but the partner too slow ($0.45$) or signaling too expensive ($2\times$), capture drops to $0.37\times$: the premium is partly unreachable at any signaling latency, or the scout rationally emits less. Where the channel is severed (blind), the reward does not merely stop helping---it \emph{hurts}, because the speaker pays for signals nobody receives.
 
 \textbf{The boundary is two-sided: something to say, and not already said.} A highway on-ramp negotiation we built as a candidate third environment closed the boundary from the far side. There the merger's \emph{task-optimal} approach---aligning with its intended gap---is inherently informative, and baseline RL bootstrapped meaning-differentiated accommodation unaided: listeners braked selectively for the correct gap under no communicative reward, leaving the oracle premium unresolvable ($0.021\approx1.3\times$ s.e.) even though severing the channel cost 26 points of success. \emph{Signal pre-existence} is thus the mirror of Environment B's failure mode: legibility rewards can only buy value when the agent has something to say (else they purchase certified miscalibration, Sec.~\ref{ssec:results_spread}) \emph{and} the task does not already say it (else optimization substitutes for communication). We report this candidate as a negative result because it is one: a second design, a three-lane fork in which cooperators must open a corridor for a merging vehicle, was built specifically to repair the on-ramp's weaknesses and also failed to certify a premium at $800$ cycles (baseline $0.361\pm.060$ vs.\ oracle $0.368\pm.079$, $n{=}4$), the cooperators again converging on the accommodating behavior unaided. Two independent attempts to construct a second premium-positive environment failed the gate, which is the strongest evidence we can offer that the gate is not a formality---and a real limit on the external validity of everything that follows from the one family that passed. The $0.51\times$ regularity quantifies the region between---noting its pre-registered scope is the partner-speed/cost family: the meaning-space regimes of Sec.~\ref{ssec:continuous} fall below its fitted band (capture $0.18$--$0.26$), read as the axis along which certification weakens, not as a violation of the within-family fit.
-
-\begin{table}[t]
-\centering
-\caption{When pragmatism pays. Each row states a requirement and the setting in which we deliberately violated it; the last column is the gain that survives the violation, relative to that setting's own baseline. The n.s.\ entries are the result, not missing evidence: remove the requirement and the method stops working.}
-\label{tab:boundary}
-\small
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.42\columnwidth}>{\raggedright\arraybackslash}p{0.34\columnwidth}c@{}}
-\toprule
-\textbf{Requirement} & \textbf{Violated by} & \textbf{Gain left} \\
-\midrule
-Premium exists & Pref.\ spread; $4\times$ cost & n.s. \\
-Partner observes speaker & Blind partner & $-0.11$ \\
-Partner can act in time & Partner speed $0.45$ & $0.37\times$ \\
-Signal is affordable & $2\times$ shaping & $0.37\times$ \\
-Listener credits readable code & Literal $\Ltheta$, any $\lambda$ & n.s. \\
-Listener is calibrated & Exclusivity $L_0$ & n.s. \\
-Weight matches reward scale & $\lambda{\ge}0.6$ & n.s. \\
-Evaluated at convergence & $150$ cycles & flips \\
-Meanings coarsely separable & $S^1$ continuum & $0.18\times$ \\
-Task does not pre-carry signal & On-ramp merge & $0.02$ \\
-\midrule
-\textit{All hold} & \textit{3 task variants} & $.59$--$.82\times$ \\
-\bottomrule
-\end{tabular}
-\end{table}
 
 \begin{figure}[t]
 \centering
@@ -303,7 +277,7 @@ Everything so far assumed a small discrete meaning space. What breaks on a conti
 
 We test on a continuous-bearing scout-support: the target is a point at angle $\theta\sim U[0,2\pi)$ on the site circle, all other mechanics unchanged. The premium re-certifies (baseline $0.843\pm.007$, oracle $0.945\pm.008$, $n{=}8$; blind commitment at chance), and the paper's ordering replicates in a third setting. The literal contrastive listener is inert ($4.9\%$ closure, $t{=}0.5$) even as its decoder concentrates (top-1 accuracy $.74$ against a $.06$ chance level), the saturation signature again, while one Sinkhorn iteration closes $17.7\%$ (pooled $n{=}16$, $t{=}2.2$; $24.2\%$ and $11.2\%$ in the two cohorts of a pre-registered split, and a flat $\lambda$ response at $23.0\%$ for $\lambda{=}.6$). All closures here are suggestive.
 
-Density is itself a finding. The hand-crafted progress listener, ported for free by scoring particles, drops from $70\%$ closure to $15.8\%$ ($t{=}1.6$): when meanings are dense, nearby ones have near-identical action consequences, contrast sets lose resolution, and \emph{every} listener family captures less. This is a boundary-map extension (Table~\ref{tab:boundary}), not a property of any one listener: legibility rewards need meanings coarse enough that alternatives are behaviorally discriminable.
+Density is itself a finding. The hand-crafted progress listener, ported for free by scoring particles, drops from $70\%$ closure to $15.8\%$ ($t{=}1.6$): when meanings are dense, nearby ones have near-identical action consequences, contrast sets lose resolution, and \emph{every} listener family captures less. This extends the boundary map, and is not a property of any one listener: legibility rewards need meanings coarse enough that alternatives are behaviorally discriminable.
 
 \subsubsection{Self-Assigned Meanings: Legible Latents}
 \label{ssec:bottleneck}
