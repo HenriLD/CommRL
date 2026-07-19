@@ -182,6 +182,13 @@ Table~\ref{tab:scout} and Fig.~\ref{fig:listeners} summarize Environment A at th
 
 \textbf{External baselines, head-to-head.} We run the two closest prior designs under the frozen recipe ($\lambda{=}0.3$, VOI, 8 seeds, 400 cycles). Tian et al.'s partner-belief reward~\cite{tian2020implicit}---a decoder over the supporter's own observation---lands at baseline parity ($6\%$ closure, n.s.) with a small commitment gain: fixing the audience to the actual partner's information state is exactly the saturating choice our analysis warns against. Strouse et al.'s information regularization~\cite{strouse2018learning}---$\log q_1(m|s,a) - \log q_0(m|s)$---closes $34\%$ ($t=2.6$, suggestive), indistinguishable from our bounded$+$RSA recipe, for a principled reason: subtracting the state decoder removes the contextual shortcut \emph{by construction}, implementing the viewpoint bound by subtraction where RSA implements it by contrast. Tuning is equalized---each design got the same weight sweep (three points for information regularization, two for partner belief)---and information regularization \emph{peaks} at $\lambda{=}0.3$ (falling to $3\%$ at $\lambda{=}0.6$ and $13\%$ at $\lambda{=}1.0$, both n.s.) exactly where the recursion reward peaks at $\lambda{=}0.6$: the two context-debiasing routes have opposite weight tolerance. Under a common harness both designs thus sit in the same band at their optima and trail the vocabulary-restricted hand-crafted listeners by a factor of two---the second clause made quantitative. (Partner belief is inert at every weight tried: $0.833$--$0.852$.)
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{img/listeners.png}
+\caption{Which listener pays, in Environment A. Dots are seeds, bar $\pm1$ s.e.m., marker the mean; blue marks the rows the argument turns on. Exclusivity is bimodal rather than merely uncertain: seven seeds at $.3$--$.6$, one off-scale. Exact values in Table~\ref{tab:scout}.}
+\label{fig:listeners}
+\end{figure}
+
 \begin{table}[t]
 \centering
 \caption{Environment A at the converged budget (mean $\pm$ s.e.m.). Closure is the fraction of the oracle premium closed; Commit is the supporter's commitment accuracy. $n{=}10$ seeds unless marked $^\dagger${\,}($n{=}8$) or $^\ddagger${\,}($n{=}6$).}
@@ -245,13 +252,6 @@ We vary the two quantities that should govern the effect---what early intent is 
 \textbf{Failure modes.} Where no premium is resolvable, no gain appears (preference spread $t{=}0.2$ at the converged budget; $4\times$ cost $t{=}1.4$). Where it is real but the partner too slow ($0.45$) or signaling too expensive ($2\times$), capture drops to $0.37\times$: the premium is partly unreachable at any signaling latency, or the scout rationally emits less. Where the channel is severed (blind), the reward does not merely stop helping but \emph{hurts}, the speaker paying for signals nobody receives.
 
 \textbf{The boundary is two-sided: something to say, and not already said.} A highway on-ramp negotiation, built as a candidate third environment, closed the boundary from the far side: the merger's \emph{task-optimal} approach---aligning with its intended gap---is inherently informative, and baseline RL bootstrapped meaning-differentiated accommodation unaided, listeners braking selectively for the correct gap under no communicative reward, leaving the oracle premium unresolvable ($0.021\approx1.3\times$ s.e.) even though severing the channel cost 26 points of success. \emph{Signal pre-existence} mirrors Environment B's failure mode: legibility rewards buy value only when the agent has something to say (else they purchase certified miscalibration, Sec.~\ref{ssec:results_spread}) \emph{and} the task does not already say it (else optimization substitutes for communication). We report this as a negative result because it is one; so is a three-lane fork in which cooperators must open a corridor for a merging vehicle, built to repair the on-ramp's weaknesses and also failing the gate at $800$ cycles (baseline $0.361\pm.060$ vs.\ oracle $0.368\pm.079$, $n{=}4$), the cooperators again converging on accommodation unaided. Two independent attempts at a second premium-positive environment thus failed---the strongest evidence we can offer that the gate is not a formality, and a real limit on the external validity of everything following from the one family that passed. The $0.51\times$ regularity quantifies the region between, its pre-registered scope the partner-speed/cost family: the meaning-space regimes of Sec.~\ref{ssec:continuous} fall below the fitted band (capture $0.18$--$0.26$), read as the axis along which certification weakens, not a violation of the within-family fit.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.90\columnwidth]{img/boundary_map.png}
-\caption{The boundary map. \textbf{Left:} where the premium is resolvable, gain scales with it (solid: well-behaved fit $0.68\times$; dashed: all settings $0.51\times$; dotted: oracle); too-slow partners and too-costly signaling fall below despite large premiums. \textbf{Right:} no premium / no channel. Left bars $\pm1$ s.e.m., right bars $95\%$ CIs.}
-\label{fig:boundary}
-\end{figure}
 
 \subsubsection{The Pre-Convergence Hazard}
 \label{ssec:results_dynamics}
@@ -611,9 +611,9 @@ Split $\mathbb{E}[|\Rcomm - b|\,\|g\|]$ over the event $\{L \geq 1-\epsilon\}$ a
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=\columnwidth]{img/listeners.png}
-\caption{Which listener pays, in Environment A. Dots are seeds, bar $\pm1$ s.e.m., marker the mean; blue marks the rows the argument turns on. Exclusivity is bimodal rather than merely uncertain: seven seeds at $.3$--$.6$, one off-scale. Exact values in Table~\ref{tab:scout}.}
-\label{fig:listeners}
+\includegraphics[width=0.90\columnwidth]{img/boundary_map.png}
+\caption{The boundary map. \textbf{Left:} where the premium is resolvable, gain scales with it (solid: well-behaved fit $0.68\times$; dashed: all settings $0.51\times$; dotted: oracle); too-slow partners and too-costly signaling fall below despite large premiums. \textbf{Right:} no premium / no channel. Left bars $\pm1$ s.e.m., right bars $95\%$ CIs.}
+\label{fig:boundary}
 \end{figure}
 
 \begin{figure}[h]
@@ -681,6 +681,5 @@ All environments, training, aggregation, and figure code will be released, with 
 Three agents and three colored landmarks in a continuous arena; each agent holds a private color preference; the team is rewarded for matched coverage, penalized for distance and collisions. Meanings are the three colors; every agent receives $\Rcomm$ under its own listener; $\lambda=0.1$.
 
 \textbf{The weight $\lambda$ (exploratory, 150 cycles, 2 seeds/point).} With the learned listener, $\lambda$ behaves like a dial along an information--performance frontier, up to genuinely positive information gain at a large task cost at $\lambda=1$; with the exclusivity listener no operating point buys information---the reward is ignored at small $\lambda$ and destructive at moderate $\lambda$. Calibration is what turns $\lambda$ from a landmine into a dial.
-
 
 \end{document}
