@@ -88,19 +88,21 @@ def fig_transparency(figdir):
     ax_beh = fig.add_subplot(gs[1, 0], sharex=ax_priv)
     axR = fig.add_subplot(gs[:, 1])
 
+    # values from the K=1023 critic (results_bn/probes_k1023.json), the most
+    # converged lower bound; ceiling log(1024)=6.93
     conds = ["base", "literal", "$+$RSA"]
     x = np.arange(3)
-    i_priv = np.array([5.16, 5.18, 5.18]); i_priv_se = np.array([.014, .014, .014])
-    i_beh = np.array([1.755, 1.782, 1.818]); i_beh_se = np.array([.007, .009, .012])
+    i_priv = np.array([5.95, 5.98, 5.98]); i_priv_se = np.array([.022, .012, .018])
+    i_beh = np.array([1.762, 1.781, 1.814]); i_beh_se = np.array([.004, .006, .010])
 
     # private strip: flat, sitting well below the critic ceiling (not pinned)
-    ax_priv.axhline(5.55, color="#999999", ls=(0, (4, 3)), lw=1.0)
-    ax_priv.text(2.02, 5.55, "ceiling", fontsize=6.8, color="#888888",
+    ax_priv.axhline(6.93, color="#999999", ls=(0, (4, 3)), lw=1.0)
+    ax_priv.text(2.02, 6.93, "ceiling", fontsize=6.8, color="#888888",
                  ha="right", va="bottom")
     ax_priv.errorbar(x, i_priv, yerr=i_priv_se, fmt="o-", color=C_PRIV, ms=5,
                      lw=1.6, capsize=3)
-    ax_priv.set_ylim(5.02, 5.68)
-    ax_priv.set_yticks([5.1, 5.3, 5.5])
+    ax_priv.set_ylim(5.7, 7.05)
+    ax_priv.set_yticks([5.8, 6.2, 6.6, 7.0])
     ax_priv.set_ylabel("$I(Z;\\mathrm{priv})$", fontsize=8.5)
     ax_priv.tick_params(labelbottom=False)
     ax_priv.set_title("private flat", fontsize=8, pad=3)

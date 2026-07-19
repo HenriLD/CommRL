@@ -131,7 +131,7 @@ def main():
                 r2_dec.append(ridge_r2(z, t))
             r2_noise = ridge_r2(z, priv[:, -B.N_NOISE:])
             i_beh = NCECritic(feats.shape[1]).bound(feats, z[ep_idx], seed=seed)
-            i_priv = NCECritic(B.PRIV_DIM).bound(priv, z, seed=seed, k=255)
+            i_priv = NCECritic(B.PRIV_DIM).bound(priv, z, seed=seed, k=1023)
             rows.append({"seed": seed, "r2_true": r2_true,
                          "r2_decoy": float(np.mean(r2_dec)),
                          "r2_noise": r2_noise,
