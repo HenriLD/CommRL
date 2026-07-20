@@ -75,14 +75,21 @@ def collect(run_dir, n_resets, seed0, oracle):
     return {k: torch.cat(v) for k, v in out.items()}
 
 
-def features(d):
-    """Fitted-reader inputs: the same conditioning class as the IPL -- the
-    scout-centric state with the meaning slot zeroed (exactly as IPLWrapper
-    builds its counterfactuals, so no label leakage) plus the action. Anything
-    less (e.g. unit bearings alone) makes the fitted reader a strawman: it
-    must be able to read ANY regularity, or residue and transfer mean nothing."""
+def features(d, scout_only=True):
+    """Fitted-reader inputs: scout-centric state with the meaning slot zeroed
+    (exactly as IPLWrapper builds its counterfactuals) plus the action.
+
+    scout_only additionally zeroes the partner block (supporter relative
+    position and velocity). Without this the decoder reads the TARGET off the
+    co-trained supporter's drift -- the oracle's supporter walks straight at
+    the answer from step 0 -- which measures the pair's joint state, not the
+    scout's signaling. The with-partner variant is kept as a diagnostic."""
     s = d["sobs"].clone()
     s[..., S.PREF_SLICE] = 0.0
+    s[..., S.PARTNER_PREF_SLICE] = 0.0
+    if scout_only:
+        pb = slice(S.PARTNER_PREF_SLICE.start - 4, S.PARTNER_PREF_SLICE.start)
+        s[..., pb] = 0.0                      # partner_rel + partner_vel
     return torch.cat([s, d["act"],
                       (d["t"].float() / S.EPISODE_LEN).unsqueeze(-1)], dim=-1)
 
@@ -178,9 +185,17 @@ def main():
             print("collected %s_s%d" % (cond, seed), flush=True)
 
     n_eval = N_ENVS * S.EPISODE_LEN                      # last reset = eval
+    # precompute per-run masks and per-family features once
+    trearly, feats = {}, {}
+    for k, d in data.items():
+        tr = torch.arange(len(d["target"])) < (args.resets - 1) * n_eval
+        trearly[k] = tr & mask_early(d)
+        for fam, so in (("", True), ("_full", False)):
+            feats[k + (fam,)] = features(d, scout_only=so)
+
     results = {}
     for (cond, seed), d in sorted(data.items()):
-        x, y = features(d), d["target"]
+        y = d["target"]
         early = mask_early(d)
         tr = torch.arange(len(y)) < (args.resets - 1) * n_eval
         ev = ~tr
@@ -194,22 +209,22 @@ def main():
         row["pickup"] = d["key"].reshape(args.resets, S.EPISODE_LEN, N_ENVS) \
                                 .lt(0.5).float().sum(1).mean().item()
 
-        net = fit_decoder(x[tr & early], y[tr & early], args.epochs, gen)
-        row["fit_self"] = decoder_acc(net, x[m_ev], y[m_ev])
-        row["fit_self_train"] = decoder_acc(net, x[tr & early], y[tr & early])
-
         peers = [(c, s) for (c, s) in data if c == cond and s != seed]
-        if peers:
-            xs = torch.cat([features(data[p])[mask_early(data[p])
-                                              & (torch.arange(len(data[p]["target"]))
-                                                 < (args.resets - 1) * n_eval)]
-                            for p in peers])
-            ys = torch.cat([data[p]["target"][mask_early(data[p])
-                                              & (torch.arange(len(data[p]["target"]))
-                                                 < (args.resets - 1) * n_eval)]
-                            for p in peers])
-            netc = fit_decoder(xs, ys, max(10, args.epochs // 2), gen)
-            row["fit_cross"] = decoder_acc(netc, x[m_ev], y[m_ev])
+        for fam in ("", "_full"):
+            x = feats[(cond, seed, fam)]
+            xt, yt = x[tr & early], y[tr & early]
+            net = fit_decoder(xt, yt, args.epochs, gen)
+            row["fit_self" + fam] = decoder_acc(net, x[m_ev], y[m_ev])
+            if fam == "":
+                row["fit_self_train"] = decoder_acc(net, xt, yt)
+            if peers:
+                xs = torch.cat([feats[p + (fam,)][trearly[p]] for p in peers])
+                ys = torch.cat([data[p]["target"][trearly[p]] for p in peers])
+                # matched-n: the cross reader gets the SAME training budget as
+                # the self reader, else data volume confounds grounding source
+                sel = torch.randperm(len(ys), generator=gen)[:len(yt)]
+                netc = fit_decoder(xs[sel], ys[sel], args.epochs, gen)
+                row["fit_cross" + fam] = decoder_acc(netc, x[m_ev], y[m_ev])
         results[(cond, seed)] = row
         print("  %s_s%d  %s" % (cond, seed, "  ".join(
             "%s=%.3f" % (k, v) for k, v in row.items())), flush=True)
@@ -235,12 +250,14 @@ def main():
                  np.std(res, ddof=1) / math.sqrt(len(res)),
                  np.mean(trn), np.std(trn, ddof=1) / math.sqrt(len(trn))))
 
-    print("\nCONTEXT: post-key readability and pickup timing")
-    print("%-10s%16s%16s%16s%16s" % ("cond", "geo_post", "ipl_post",
-                                     "pickup_step", "fit_train"))
+    print("\nCONTEXT: post-key, pickup timing, and the with-partner diagnostic")
+    print("%-10s%16s%16s%16s%16s%16s%16s"
+          % ("cond", "geo_post", "ipl_post", "pickup_step", "fit_train",
+             "self_full", "cross_full"))
     for cond in args.conds:
         cols = []
-        for key in ("geo_post", "ipl_post", "pickup", "fit_self_train"):
+        for key in ("geo_post", "ipl_post", "pickup", "fit_self_train",
+                    "fit_self_full", "fit_cross_full"):
             v = [results[k][key] for k in results
                  if k[0] == cond and key in results[k]]
             cols.append("%9.3f+-%.3f" % (np.mean(v), np.std(v, ddof=1)
