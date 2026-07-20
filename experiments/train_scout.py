@@ -198,7 +198,7 @@ def main():
                             "learned_pre", "learned_pre_prag",
                             "learned_frozen_prag", "learned_frozensat_prag",
                             "inforeg", "partner_belief",
-                            "ipl", "ipl_prag"])
+                            "ipl", "ipl_prag", "progress_placebo"])
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--lam", type=float, default=0.1)
     p.add_argument("--cycles", type=int, default=150)
@@ -348,6 +348,11 @@ def main():
 
     for cycle in range(start_cycle, args.cycles):
         obs = env.reset()
+        if args.condition == "progress_placebo":
+            # permuted-meaning placebo: a per-episode random target, drawn
+            # independently of the true one, replaces it in the reward only.
+            fake_target = torch.randint(0, S.N_MEANINGS, (args.n_envs,),
+                                        generator=gen)
         if ear:
             obs = inject_ear(obs, torch.full((args.n_envs, S.N_MEANINGS), 1 / 3))
         for t in range(S.EPISODE_LEN):
@@ -369,6 +374,18 @@ def main():
                 with torch.no_grad():
                     rc = S.scout_comm_reward(env, a, kind, gen=gen, pre_pos=pre_pos,
                                          n_iter=args.n_iter)
+                    r_comm[:, 0] = rc * (args.voi + (1 - args.voi) * pre_key)
+            elif args.condition == "progress_placebo":
+                # the densification control: identical reward form, density,
+                # magnitude profile, and VOI schedule as `progress`, with the
+                # semantic content destroyed by the permuted target. The swap
+                # brackets only the reward call; task rewards are untouched.
+                with torch.no_grad():
+                    real_target = env.target
+                    env.target = fake_target
+                    rc = S.scout_comm_reward(env, a, "progress", gen=gen,
+                                             pre_pos=pre_pos)
+                    env.target = real_target
                     r_comm[:, 0] = rc * (args.voi + (1 - args.voi) * pre_key)
             if ear:
                 with torch.no_grad():

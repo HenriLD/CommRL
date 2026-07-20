@@ -1,0 +1,306 @@
+[
+ {
+  "name": "progress_placebo_s0",
+  "args": [
+   "--condition",
+   "progress_placebo",
+   "--seed",
+   "0",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.3",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "progress_placebo_s1",
+  "args": [
+   "--condition",
+   "progress_placebo",
+   "--seed",
+   "1",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.3",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "progress_placebo_s2",
+  "args": [
+   "--condition",
+   "progress_placebo",
+   "--seed",
+   "2",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.3",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "progress_placebo_s3",
+  "args": [
+   "--condition",
+   "progress_placebo",
+   "--seed",
+   "3",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.3",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "progress_placebo_s4",
+  "args": [
+   "--condition",
+   "progress_placebo",
+   "--seed",
+   "4",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.3",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "progress_placebo_s5",
+  "args": [
+   "--condition",
+   "progress_placebo",
+   "--seed",
+   "5",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.3",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "progress_placebo_s6",
+  "args": [
+   "--condition",
+   "progress_placebo",
+   "--seed",
+   "6",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.3",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "progress_placebo_s7",
+  "args": [
+   "--condition",
+   "progress_placebo",
+   "--seed",
+   "7",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.3",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "iplconf_s20",
+  "args": [
+   "--condition",
+   "ipl_prag",
+   "--seed",
+   "20",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.6",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "iplconf_s21",
+  "args": [
+   "--condition",
+   "ipl_prag",
+   "--seed",
+   "21",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.6",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "iplconf_s22",
+  "args": [
+   "--condition",
+   "ipl_prag",
+   "--seed",
+   "22",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.6",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "iplconf_s23",
+  "args": [
+   "--condition",
+   "ipl_prag",
+   "--seed",
+   "23",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.6",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "iplconf_s24",
+  "args": [
+   "--condition",
+   "ipl_prag",
+   "--seed",
+   "24",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.6",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "iplconf_s25",
+  "args": [
+   "--condition",
+   "ipl_prag",
+   "--seed",
+   "25",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.6",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "iplconf_s26",
+  "args": [
+   "--condition",
+   "ipl_prag",
+   "--seed",
+   "26",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.6",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ },
+ {
+  "name": "iplconf_s27",
+  "args": [
+   "--condition",
+   "ipl_prag",
+   "--seed",
+   "27",
+   "--cycles",
+   "400",
+   "--lam",
+   "0.6",
+   "--voi",
+   "0.2",
+   "--device",
+   "cuda",
+   "--threads",
+   "2"
+  ]
+ }
+]
